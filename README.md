@@ -1,6 +1,6 @@
 # DualSenseで手動操縦
 
-この1台専用の最小構成。DualSenseとCCTLをそれぞれLinux PCへUSB接続する。
+DualSenseとCCTLをそれぞれLinux PCへUSB接続して、r・θ・zとEEを操作する。
 PCはRustで入力を送るだけ。r/θ/z・EEの制御はCCTLで行う。
 
 ## ビルドと起動
@@ -16,8 +16,7 @@ make build-svmd
 cargo run --release --locked -- /dev/serial/by-id/対象CCTL
 ```
 
-**hostとCCTLを同時更新する。USBの旧7項目形式とは互換性がない。**
-SerialSVMD・SVMDの現行CAN形式は変更していないため、両基板は現在のFWを継続使用できる。
+hostとCCTLは同じ版を使用する。USB指令は6項目で、7項目の指令は受理しない。
 ビルドでは書き込まない。実機動作は未確認。
 DualSenseは起動前に接続する。アクセス権のあるユーザーで実行する。
 STS3215はID=1、1Mbps、位置モードに設定済みであること。
@@ -39,7 +38,6 @@ STS3215はID=1、1Mbps、位置モードに設定済みであること。
 | Ctrl+C / パッド切断 | PC終了。指令途絶から250msを超えると基板側で出力OFF |
 
 スティックを離すと減速して位置を保持する。
-Create・Options・PS・○は使わず、開始・停止・再開のモードも設けない。
 
 | 軸 | 接触前 | 最初の接触後 |
 |---|---|---|
@@ -54,7 +52,7 @@ Create・Options・PS・○は使わず、開始・停止・再開のモード�
 
 初回出力時のPWM目標は全て500µs、EE回転は1024カウント。
 現在のサーボ位置を読まないため、入力とモータ応答が揃うと指定姿勢へ動く。
-1024は元設定のままで実機校正していない。
+回転の初期値1024は実機未校正。
 
 通信断・モータ異常では全出力を解除するが、登録済みの原点は消さない。
 条件が回復すると自動で操作可能になる。PCプログラムは切断時に終了するため起動し直す。
@@ -69,8 +67,8 @@ Create・Options・PS・○は使わず、開始・停止・再開のモード�
 - `cctl/src/motion.hpp` / `input.hpp`：軸の座標・制限計算とUSB入力判定。HALに依存せず直接テストする。
 - `serial_svmd/src/app.cpp`、`svmd/src/main.cpp`：CAN目標値の出力。
 
-設定ファイル、ACK待ち、応答照合、自動復旧はない。
-通信形式はDESIGN.md、検証結果はVERIFICATION.md。`make test`で通信符号化・PIDの小さなテストを実行する。
+通信形式と制御の詳細は[DESIGN.md](DESIGN.md)、検証結果は[VERIFICATION.md](VERIFICATION.md)を参照。
+`make test`で通信符号化・軸計算・PIDのテストを実行する。
 
 ## フォーマット
 
