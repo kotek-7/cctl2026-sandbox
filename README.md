@@ -1,7 +1,7 @@
 # DualSenseで手動操縦
 
 DualSenseとCCTLをそれぞれLinux PCへUSB接続して、r・θ・zとEEを操作する。
-PCはRustで入力を送るだけ。r/θ/z・EEの制御はCCTLで行う。
+PCは入力を20msごとに送り、CCTLが機体を制御する。
 
 ## ビルドと起動
 
@@ -16,16 +16,15 @@ make build-svmd
 cargo run --release --locked -- /dev/serial/by-id/対象CCTL
 ```
 
-hostとCCTLは同じ版を使用する。USB指令は6項目で、7項目の指令は受理しない。
-ビルドでは書き込まない。実機動作は未確認。
+hostとCCTLは同じ版を使用する。上記のコマンドはビルドとPCプログラムの起動用で、
+基板への書込みは別途必要。実機動作は未確認。
 DualSenseは起動前に接続する。アクセス権のあるユーザーで実行する。
 STS3215はID=1、1Mbps、位置モードに設定済みであること。
 
 ## 操作
 
-機体の起動姿勢を合わせる必要はない。DualSenseとCCTLを接続してPCプログラムを起動する。
-有効なPC入力と正常なモータ応答が揃うと、その場から操作できる。
-自動で原点へ移動する処理はない。
+DualSenseとCCTLを接続してPCプログラムを起動する。
+有効なPC入力と正常なモータ応答が揃うと、起動位置から手動で操作できる。
 
 | 入力 | 動作 |
 |---|---|
@@ -59,7 +58,7 @@ STS3215はID=1、1Mbps、位置モードに設定済みであること。
 出力解除は重力を保持しない。
 モータの電源を入れ直した場合はCCTLも再起動する。r・zは再び接点で原点を取得する。
 
-## 読む順番
+## ソース構成
 
 - `src/main.rs` → `src/pad.rs`：入力・送信。
 - `cctl/src/app.cpp` → `motors.cpp` / `ee.cpp`：基板のループ・機体制御。
@@ -86,13 +85,17 @@ make format-check
 新しいC/C++ファイルは `git add` 後に実行する。
 生成コード、外部ライブラリ、`led-music/` は対象外。CIでも `make format-check` を実行する。
 
-VSCodeのSTM32Cube clangd拡張はフォーマット機能が既定でOFFのため、
-`stm32cube-ide-clangd.enableFormatting: true` と、C/C++の
-`editor.defaultFormatter: "STMicroelectronics.stm32cube-ide-clangd"` を指定する。
-`cctl/` と `serial_svmd/` のVSCode設定には指定済み。
-リポジトリ全体を開く場合はルートの `.vscode/settings.json` に同じ設定を置く
-（ルートのエディタ設定は個人設定としてGit管理対象外）。
-設定後に「Developer: Reload Window」を実行し、C/C++ファイルで
-「Format Document」（LinuxではShift+Alt+F）を使う。
-整形ルールは共通の `.clang-format` を読む。拡張内のclangdとCLIのclang-formatは
-バージョンが異なる場合があるため、コミット前は `make format-check` で確認する。
+VSCodeではSTM32Cube clangd拡張を有効にし、次の設定を使う。
+`cctl/`・`serial_svmd/` には設定済み。ルートを開く場合は、
+個人用の `.vscode/settings.json` に追加する。
+
+```json
+{
+    "stm32cube-ide-clangd.enableFormatting": true,
+    "[c]": { "editor.defaultFormatter": "STMicroelectronics.stm32cube-ide-clangd" },
+    "[cpp]": { "editor.defaultFormatter": "STMicroelectronics.stm32cube-ide-clangd" }
+}
+```
+
+設定後に「Developer: Reload Window」を実行し、「Format Document」で整形する。
+CIと同じ整形結果を確認するには `make format-check` を使う。
