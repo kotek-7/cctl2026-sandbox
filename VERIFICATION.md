@@ -1,21 +1,18 @@
 # 検証記録
 
-2026-10-31、`/home/kotek/dev/cctl2026-sandbox` へ移設・簡素化後のLinux環境。
+2026-10-31。PC側をPythonの `operate.py` 1ファイルへ変更した後の記録。
+旧Rustコード・シミュレータ・起動ラッパは削除済み。
 
-- `cargo test --locked --manifest-path host/Cargo.toml`: 27ユニットテストと3端末テストが成功。
-- 原点、接点、符号付き座標換算、制動距離、加速、停止目標の保持、EE回転補償を検証。
-- 運転開始、保持・再開、中立条件、切断、緊停、基板異常、応答待ち、出力無効化を検証。
-- `ctest --test-dir tests/build --output-on-failure`: 必要な3基板とモータ/STS通信の5テストが成功。
-- `cargo clippy --manifest-path host/Cargo.toml --locked --all-targets -- -D warnings`: 成功。
-- `cargo fmt --manifest-path host/Cargo.toml --check`: 成功。
-- `make build-cctl`: Release RAM 15,528 B / FLASH 59,924 B。
-- `make build-serial-svmd`: Release RAM 3,800 B / FLASH 21,744 B。
-- `make build-svmd`: RAM 4,056 B / FLASH 43,316 B。
-- `git diff --check`: 成功。
+`make test` 成功:
 
-旧host構成のテストは削除済み。以前の287件という数字は現在の構成には使わない。
-現在のPC側は14ソースファイルで、旧構成をコンパイルする機能フラグはない。
+- Python 14テスト。起動時の出力無効化、設定照合、原点/中立条件、接点、PS保持停止、RUN応答待ちとその中断、通信断、モータ異常、終了時の3基板への停止送信。
+- evdevの軸・ボタン対応、r/zの符号と加速、制動距離、EE回転範囲、PWM端点への到達。
+- 実pyserialをLinuxの仮想端末へ接続し、実行コードの初期設定処理を検証。
+- CTestの5テスト: CCTL・SerialSVMD・SVMDのロジック、モータ/STS通信ドライバ。
 
-実DualSense・USBシリアル実接続・モータ方向・サーボ初期姿勢・接点極性・停止距離は実機未確認。
-ファームウェア書込みも未実施。模擬基板は衝突・重力・基板内のタイミングを再現しない。
-原点は手動位置合わせ後の確定方式。
+`operate.py --help`、Ruffの構文/未使用参照/インポート検査と整形確認、`git diff --check` も成功。
+依存はevdev 1.9.3、pyserial 3.5。uv.lockに固定。
+
+基板FWのソースは今回変更していない。
+実DualSense、USB実接続、実機での移動・停止距離・サーボ初期姿勢は未確認。
+基板への書込みも未実施。仮想端末テストは実機の確認を代替しない。
