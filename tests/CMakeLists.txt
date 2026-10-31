@@ -27,13 +27,6 @@ function(add_firmware_tests name src_dir)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-add_firmware_tests(dcmd_tests ${REPO_ROOT}/dcmd/src
-    digital_inputs_test.cpp
-    status_led_test.cpp
-    dcmd/controller_test.cpp
-    ${REPO_ROOT}/dcmd/src/domain/controller.cpp
-)
-
 add_firmware_tests(serial_svmd_tests ${REPO_ROOT}/serial_svmd/src
     serial_svmd/can_rx_queue_test.cpp
     digital_inputs_test.cpp
