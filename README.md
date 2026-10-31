@@ -53,15 +53,30 @@ EE回転の `zero0_count` は元設定の1024を引き継いでおり、この�
 
 ## コードの構成
 
-- `host/src/bin/simple.rs`: gilrs、serialport、端末を直接扱う20 ms周期の単一ループ。
-- `host/src/manual_control.rs`: 原点、運転/停止、機体固有の保護と指令生成。
-- `host/src/machine/`, `protocol/`, `application/settings.rs`: 既存の換算・通信仕様・設定照合。
-- `machine.toml`: このアプリが読む設定ファイル。
-- `cctl/`, `serial_svmd/`, `svmd/`: 既存基板のファームウェア。
+このGitプロジェクトのルートは `/home/kotek/dev/cctl2026-sandbox`。
+元の `/home/kotek/dev/catchrobo2026` からcloneした履歴を保持している。
+`led-music/` は以前の別プロジェクトで、このGit管理から除外している。
 
-通常実行にGUI、操作API、要求キュー、共有状態、制御スレッドはない。
-旧worker/APIは既存の回帰テスト用に `test-harness` 機能でのみ残す。
-旧 `docs/` のGUIやhostctlの手順は本アプリには適用しない。
+PC側は `host/src/` にある。最初に `main.rs`、次に `control.rs` を読む。
+
+| ファイル | 内容 |
+|---|---|
+| `main.rs` | gilrs・serialport・端末を直接使う20 msのループ |
+| `input.rs` | DualSenseの固定ボタン割当 |
+| `control.rs` | 原点設定、運転、保持停止、異常時の出力解除 |
+| `motion.rs` | r/θ/zの換算・制動・可動域制限、EE回転補償 |
+| `config.rs` | この機体専用の設定と入力検証 |
+| `settings.rs` | 起動時の基板パラメータ書込み・応答照合 |
+| `protocol/` | 既存基板の通信形式 |
+| `simulator.rs` | 使用する指令だけの模擬基板 |
+
+設定は `machine.toml` の1つ。旧worker、API、汎用プロファイル、GUI、
+自動シーケンス、XY制御、ボーナス/DC、旧構成の回帰テストは削除した。
+旧構成を有効化する機能フラグもない。
+
+`cctl/`・`serial_svmd/`・`svmd/` は既存基板のFW。
+HAL/CMSIS/USBと実モータのドライバ・保護処理は必要な依存として保持する。
+`tests/` はこの3基板のロジックと通信ドライバの検証。
 
 ## 検証とファームウェア
 
