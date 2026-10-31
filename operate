@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$project_dir"
+export CARGO_TARGET_DIR="$project_dir/host/target"
+build() { cargo build --locked --manifest-path host/Cargo.toml --bin simple; }
+case "${1:-help}" in
+    build) build ;;
+    run)
+        [[ $# == 2 ]] || { echo '使い方: ./operate run /dev/serial/by-id/対象CCTL' >&2; exit 2; }
+        build
+        exec host/target/debug/simple --device "$2"
+        ;;
+    sim)
+        [[ $# == 1 ]] || { echo '使い方: ./operate sim' >&2; exit 2; }
+        build
+        exec host/target/debug/simple --simulate
+        ;;
+    test)
+        cargo test --locked --manifest-path host/Cargo.toml --lib --test simple_console
+        cargo test --locked --manifest-path host/Cargo.toml --features test-harness --test simulated_host
+        cmake -S tests -B tests/build -G Ninja
+        cmake --build tests/build
+        ctest --test-dir tests/build --output-on-failure
+        ;;
+    help|-h|--help)
+        printf '%s\n' './operate build       PC用プログラムをビルド' \
+            './operate sim         模擬機体で起動' \
+            './operate run DEVICE  対象CCTLを明示して起動' \
+            './operate test        PC・FWの非実機テスト'
+        ;;
+    *) echo '不明なコマンドです。./operate help を参照してください。' >&2; exit 2 ;;
+esac

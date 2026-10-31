@@ -1,58 +1,80 @@
-# キャチロボ2026 同志社大学 チーム ちぷ☆すた 制御リポジトリ
-キャチロボバトルコンテスト2026のチーム ちぷ☆すたの制御コードベースです。
-## 技術スタック
-### STM32 シリーズ
-多くの基板は STM32 シリーズのマイコンを搭載している。STM32 シリーズでは STM32 VSCode Extension v3.x + C++ で原則開発する。
+# DualSenseで手動操縦する最小構成
 
-### RA4M1 シリーズ
-一部の基板は Renesas の R7FA4M1AB3CFM (通称 R4 マイコン) を搭載している。R4 マイコンでは、 PlatformIO + C++ で原則開発する。
+DualSenseと既存CCTLを、それぞれLinux PCへUSB接続する。
+CCTLから先のCAN配線・基板・モータは元の機体を使用する。
+対象はr/θ/z、EE回転・畳み・把持と手動原点設定。
 
-### ROS2（archived）
-`ros2/` は archived。開発・ビルド検証の対象外で、参照用に残している。
-機体座標、手動速度制御、操作権と設定反映は `host/`（Rust）が担当する。
+## 起動
 
-基板FWはデバイス制御と安全停止を担う汎用実行基盤とし、機体の軸名、機械換算、
-入力割当、サーボIDは`host/config/*.toml`に置く。構成の詳細は
-[汎用ファームウェア設計](docs/generic_firmware.md)を参照。
-
-## ドキュメント
-機体・回路・制御のドメイン知識は [docs/](docs/README.md) を参照。
-
-全基板の駆動・読取り・通信を個別に切り替える実機テストは
-[基板ネットワークの動作テスト](docs/firmware_tests.md)を参照。
-各基板のペリフェラルを単体で動かして確認するコードは [samples/](samples/README.md) にある。
-
-HAL 非依存ロジックのホスト側テストは [tests/](tests/README.md) にある。
-
-## よく使う開発コマンド
-
-リポジトリ直下のMakefileから、基板FWのビルド・書込み、host起動、診断、テストを実行できる。
+Rust/Cargo、C/C++ビルド環境、pkg-config、libudev開発パッケージが必要。
+Ubuntuでは `sudo apt install build-essential pkg-config libudev-dev`。
+USBシリアルとゲームパッドのアクセス権を持つユーザーで起動する。
 
 ```sh
-make help
-make flash-cctl
-make host
-make host-sim
-make fw-test BOARD=network
-make test
+./operate build
+./operate run /dev/serial/by-id/対象CCTL
 ```
 
-書込み先は基板ごとに明示する。接続先や機体プロファイルを変える場合は、例えば
-`make host SERIAL_DEVICE=/dev/ttyACM1 PROFILE=host/config/dcmd.toml`と指定する。
-使用可能なターゲットと変数の一覧は`make help`に表示される。
+接続先は必ず指定する。DualSense（通常版/Edge）は1台だけ接続する。
+設定は直下の `machine.toml`。元機体の換算・方向・制限値を継承している。
+基板のパラメータ応答と照合が完了すると `configured=true` になる。
+照合不一致・通信異常時は停止して終了する。原因を直して再起動する。
 
-## 手動操縦と模擬接続
+## 原点設定と操作
+
+1. 起動時は全出力解除。rを前端接点、zを下端接点、θを正面へ手動で合わせる。
+2. ボタンを離し、スティック・トリガーを中立にする。
+3. Createを1秒長押しする。r/z両接点を確認して3軸の原点を採用する。
+4. 一度すべて離してからOptionsを押すと運転開始。
+
+自動で原点へ走行する処理はない。θ正面は目視で合わせる。
+PWMサーボには実測位置の読取りがないため、アプリ起動時に `initial_us` を
+出力無効のまま設定し、Optionsで有効化する際にその姿勢へ動く。
+現在値は畳み・把持とも500 µs。実機の機構と設定の対応を確認すること。
+EE回転の `zero0_count` は元設定の1024を引き継いでおり、このプロジェクトでは実機校正していない。
+
+| 操作 | 動作 |
+|---|---|
+| 左スティック上下 / 左右 | r / θ |
+| R2 / L2 | zの正 / 負方向 |
+| 右スティック左右 | EE回転の向きを微調整（θ回転を補償） |
+| 十字キー上下 | 押している間、EE畳みを操作 |
+| 十字キー左 / 右 | 把持を開く / 閉じる |
+| ○ | 把持を受け渡し用の幅にする |
+| L1 | 低速操作 |
+| PS / 端末の `stop` | 3軸を保持して停止、EEは出力解除 |
+| 端末の `estop` | 全出力解除、原点を破棄 |
+| 端末の `reset` | 緊停フラグのみ解除。原点再設定が必要 |
+| `quit` / Ctrl+C / 端末入力終了 | 全出力解除を送って終了 |
+
+パッド切断・通信途絶・制御ループ遅延・基板異常で出力解除する。
+保持停止から再開する際も、一度すべての入力を離してOptionsを押す。
+全出力解除後は重力による動きを保持しない。
+
+## コードの構成
+
+- `host/src/bin/simple.rs`: gilrs、serialport、端末を直接扱う20 ms周期の単一ループ。
+- `host/src/manual_control.rs`: 原点、運転/停止、機体固有の保護と指令生成。
+- `host/src/machine/`, `protocol/`, `application/settings.rs`: 既存の換算・通信仕様・設定照合。
+- `machine.toml`: このアプリが読む設定ファイル。
+- `cctl/`, `serial_svmd/`, `svmd/`: 既存基板のファームウェア。
+
+通常実行にGUI、操作API、要求キュー、共有状態、制御スレッドはない。
+旧worker/APIは既存の回帰テスト用に `test-harness` 機能でのみ残す。
+旧 `docs/` のGUIやhostctlの手順は本アプリには適用しない。
+
+## 検証とファームウェア
 
 ```sh
-cargo run --locked --manifest-path host/Cargo.toml --bin host -- --simulate
+./operate sim               # 模擬通信 + 接続したDualSense
+host/target/debug/simple --simulate --no-gamepad  # パッドなしで起動・停止を確認
+./operate test              # PC側・基板ロジックの非実機テスト
+make build-cctl
+make build-serial-svmd
+make build-svmd
 ```
 
-GUIは操縦・調整・診断・文書の4画面。起動済みhostには`hostctl`から接続できる。
-操作権、停止復帰、設定保存の手順は[host操作ガイド](docs/host_operation.md)、
-開発時の責務分担と拡張先は[hostアーキテクチャ](docs/host_architecture.md)を参照。
-
-## 並行開発
-
-複数のエージェントで同時に変更する場合は、変更ごとに Git worktree とブランチを分ける。
-作業ディレクトリの作成、シミュレータの同時起動、変更の統合は
-[並行開発手順](docs/parallel_development.md)を参照。
+STM32ビルドにはCMake/Ninja/Arm GNU Toolchain、SVMDにはPlatformIOが必要。
+`make build-svmd PIO=/path/to/pio` で実行ファイルを指定できる。
+書込みは自動実行しない。模擬機体は通信・状態遷移の検証用で、衝突・重力・制動距離を再現しない。
+本変更では実機への書込み・モータ駆動は行っていない。
