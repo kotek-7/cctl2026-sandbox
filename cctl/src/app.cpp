@@ -26,7 +26,7 @@ void readInput() {
     __enable_irq();
     if (!ready)
         return;
-    // 全項目が正常な行だけを採用する。不正な行では通信の有効期限も延長しない。
+    // 不正な行では入力値も受信時刻も更新しない。
     int values[6];
     if (!parseInput(line, values))
         return;
@@ -70,12 +70,11 @@ extern "C" void loop() {
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
     // 接点はLowでON。原点はPC入力の有無にかかわらず、軸の位置が有効なら登録する。
     motorsReference(r_contact, z_contact);
-    // 出力条件は毎ループ評価する。条件回復時も登録済みの原点はそのまま使う。
     const bool enabled = outputsEnabled(input_received, last_input, now, motorsReady());
     motorsEnable(enabled);
     static uint32_t motion_at = 0;
     if (now - motion_at >= 20) {
-        // ループが遅れても、1回の更新で20ms分を超える移動目標を積まない。
+        // 遅延分を一度に動かさず、目標の更新量を20ms分に抑える。
         const float dt = std::min((now - motion_at) / 1000.0f, 0.02f);
         motion_at = now;
         if (enabled)

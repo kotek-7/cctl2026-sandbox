@@ -17,7 +17,7 @@ inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool
     if (index == 1 || axis.referenced || !contact)
         return;
     axis.offset = measured - config::origin[index] * config::native_per_unit[index];
-    // 座標系を確定する瞬間に、接触前の移動目標を持ち越さない。
+    // 原点登録時に、接触前の移動目標を解除する。
     axis.target = measured;
     axis.speed = 0;
     axis.referenced = true;
@@ -54,7 +54,7 @@ inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input
     if (speed == 0 && axis.speed != 0)
         axis.target = measured;
     if (speed != 0) {
-        // 追従が遅れても目標が積み上がらないよう、実測からの先行幅を制限する。
+        // モータの追従が遅れたときに、目標だけが先へ進むのを防ぐ。
         const float max_target_lead =
             std::abs(config::speed[index] * native_per_unit) * config::target_lead_seconds;
         axis.target = std::clamp(axis.target + speed * native_per_unit * dt,

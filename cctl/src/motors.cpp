@@ -96,7 +96,7 @@ static void holdPosition() {
         r.setLocRef(axes[0].target);
 }
 
-// 各軸の返信鮮度を個別に確認する。他軸が未接続でも原点を登録できる。
+// 他軸の応答を待たず、位置情報が有効な軸から原点を登録する。
 void motorsReference(bool r_contact, bool z_contact) {
     const auto now = HAL_GetTick();
     if (feedback_received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
@@ -140,7 +140,7 @@ void motorsUpdate(uint32_t now) {
         bus.sendStd(0x200, data, 8);
         current_at = now;
     }
-    // EL05は位置目標を送り、MECH_POSの定期読出しで周回数と返信鮮度を更新する。
+    // EL05は位置目標を送り、MECH_POSの定期読出しで周回数と最終応答時刻を更新する。
     if (now - position_at >= 20) {
         if (enabled)
             r.setLocRef(axes[0].target);

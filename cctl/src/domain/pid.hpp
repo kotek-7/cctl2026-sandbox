@@ -3,7 +3,8 @@
 namespace domain {
 
 // 経過時間 dt は呼び出し側が渡す。
-// 出力は ±out_limit にクランプし、飽和時は積分器を anti-windup する。
+// 出力を±out_limitに制限する。
+// 出力が飽和し、誤差がさらに飽和を強める方向なら、積分値をリセットする。
 class Pid {
   public:
     Pid(float kp, float ki, float kd, float out_limit)
