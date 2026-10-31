@@ -1,12 +1,10 @@
-//! 機体操作GUIと、同じ接続を使うローカル操作API。
+//! 旧worker/APIの回帰テスト専用実行ファイル（test-harness機能が必要）。
 use clap::Parser;
-use eframe::egui;
 use host::{
     application::{
         app_state::{BridgeConfig, Shared},
         worker,
     },
-    gui,
     interface::{api_server, control_api},
     transport::profile_store,
 };
@@ -58,30 +56,11 @@ fn main() -> anyhow::Result<()> {
     let worker = thread::spawn(move || worker::run_with_gamepad(worker_shared, !args.no_gamepad));
     let api_shared = shared.clone();
     let api = thread::spawn(move || server.run(api_shared));
-    let result = if args.headless {
-        while shared.is_running() {
-            thread::sleep(std::time::Duration::from_millis(100));
-        }
-        Ok(())
-    } else {
-        let app_shared = shared.clone();
-        eframe::run_native(
-            "host",
-            eframe::NativeOptions {
-                viewport: egui::ViewportBuilder::default()
-                    .with_inner_size([1100.0, 760.0])
-                    .with_title("キャチロボクワガタ — 操縦"),
-                ..Default::default()
-            },
-            Box::new(move |cc| {
-                gui::install_japanese_font(&cc.egui_ctx);
-                Ok(Box::new(gui::BridgeApp::new(app_shared)))
-            }),
-        )
-        .map_err(|error| anyhow::anyhow!(error.to_string()))
-    };
+    while shared.is_running() {
+        thread::sleep(std::time::Duration::from_millis(100));
+    }
     shared.request_stop();
     let _ = worker.join();
     let _ = api.join();
-    result
+    Ok(())
 }

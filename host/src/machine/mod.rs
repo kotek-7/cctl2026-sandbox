@@ -1,5 +1,6 @@
 //! 機体設定、原点管理、手動速度指令。
 mod controller;
+#[cfg(any(test, feature = "test-harness"))]
 pub(crate) mod motion_profile;
 mod profile;
 pub use controller::{MachineController, OriginState};

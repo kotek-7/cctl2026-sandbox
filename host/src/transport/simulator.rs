@@ -16,6 +16,7 @@ pub struct Simulator {
     velocity: [f32; 3],
     targets: [Option<f32>; 3],
     pwm: u8,
+    pwm_pulses: [u16; 4],
     servos: BTreeMap<u8, (u16, bool)>,
     servo_mode: u8,
     sts: super::sts_simulator::StsSimulator,
@@ -31,7 +32,7 @@ pub struct Simulator {
     errors_once: [u8; 3],
 }
 impl Simulator {
-    pub(super) fn fault(&mut self, fault: &str) -> Result<()> {
+    pub fn fault(&mut self, fault: &str) -> Result<()> {
         match fault {
             "disconnect" => {
                 self.sts.stop();
@@ -84,7 +85,7 @@ impl Simulator {
         Ok(())
     }
 
-    pub(super) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             started: Instant::now(),
             tick: Instant::now(),
@@ -96,6 +97,7 @@ impl Simulator {
             velocity: [0.0; 3],
             targets: [None; 3],
             pwm: 0,
+            pwm_pulses: [1500; 4],
             servos: BTreeMap::new(),
             servo_mode: 0,
             sts: super::sts_simulator::StsSimulator::default(),
@@ -111,7 +113,7 @@ impl Simulator {
             errors_once: [0; 3],
         }
     }
-    pub(super) fn write(&mut self, line: &str) -> Result<()> {
+    pub fn write(&mut self, line: &str) -> Result<()> {
         if self.disconnected {
             bail!("模擬通信断");
         }
@@ -203,6 +205,7 @@ impl Simulator {
                 self.velocity = [0.0; 3];
             }
             ["PARAM", id, value] => {
+                if self.mode != "SAFE" {self.rx.push_back("ERR code=BUSY".into());return Ok(());}
                 let id: u8 = id.parse()?;
                 let value: f32 = value.parse()?;
                 self.parameters.insert(id, value);
@@ -237,6 +240,11 @@ impl Simulator {
                     } else {
                         match id {
                             768 => {
+                                let channel = usize::from(bytes[2]);
+                                if channel >= 4 { bail!("invalid PWM channel"); }
+                                if bytes[1] == 1 {
+                                    self.pwm_pulses[channel] = u16::from_be_bytes([bytes[4],bytes[5]]);
+                                }
                                 if bytes[1] == 0 {
                                     self.pwm = 0;
                                 }
@@ -248,8 +256,8 @@ impl Simulator {
                                     }
                                 }
                                 self.rx.push_back(format!(
-                                    "CAN_RX bus=2 id=769 data=0100{:02X}{:02X}{:02X}000000",
-                                    bytes[1], bytes[2], self.pwm
+                                    "CAN_RX bus=2 id=769 data=0100{:02X}{:02X}{:02X}{:04X}00",
+                                    bytes[1], bytes[2], self.pwm, self.pwm_pulses[channel]
                                 ));
                             }
                             784 => {
@@ -316,7 +324,7 @@ impl Simulator {
         }
         Ok(())
     }
-    pub(super) fn read(&mut self) -> Vec<String> {
+    pub fn read(&mut self) -> Vec<String> {
         let dt = self.tick.elapsed().as_secs_f32().min(0.1);
         self.tick = Instant::now();
         // 通信線が無音でも基板側watchdogは独立して動作する。

@@ -1,3 +1,4 @@
+#![cfg(feature = "test-harness")]
 //! host実行ファイルと模擬機体を起動し、実際のUnixソケット越しに状態遷移を検証する。
 use api::{Reply, Request};
 use host::interface::control_api as api;
