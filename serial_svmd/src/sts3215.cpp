@@ -1,23 +1,24 @@
 #include "sts3215.hpp"
-#include "main.h"
 #include "domain/sts3215_protocol.hpp"
+#include "main.h"
 #include <cstring>
 extern "C" UART_HandleTypeDef huart1;
 namespace {
 // SYNC_WRITEならステータス応答が不要。対象は固定IDの1台。
-void write(uint8_t address, const uint8_t* data, uint8_t length) {
+void write(uint8_t address, const uint8_t *data, uint8_t length) {
     uint8_t parameters[10] = {address, length, 1};
     std::memcpy(parameters + 3, data, length);
     uint8_t packet[16];
-    const auto size = domain::sts3215::buildInstruction(packet, sizeof(packet),
-        0xfe, 0x83, parameters, length + 3);
+    const auto size = domain::sts3215::buildInstruction(packet, sizeof(packet), 0xfe, 0x83,
+                                                        parameters, length + 3);
     HAL_UART_Transmit(&huart1, packet, size, 5);
 }
-}
+} // namespace
 void servoBegin() {
     huart1.Init.BaudRate = 1000000;
     huart1.Init.OverSampling = UART_OVERSAMPLING_8;
-    if (HAL_UART_Init(&huart1) != HAL_OK) Error_Handler();
+    if (HAL_UART_Init(&huart1) != HAL_OK)
+        Error_Handler();
     servoEnable(false);
 }
 void servoTarget(int16_t position) {

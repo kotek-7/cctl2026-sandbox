@@ -26,8 +26,7 @@ constexpr std::size_t MAX_SYNC_TARGETS = 16;
 // FF FF <ID> <長さ> <命令> <パラメータ...> <チェックサム>
 constexpr std::size_t PACKET_OVERHEAD = 6;
 constexpr std::size_t MAX_PACKET_SIZE = MAX_TX_PARAMETERS + PACKET_OVERHEAD;
-constexpr std::size_t MAX_SYNC_PARAMETERS =
-    2 + (MAX_SYNC_TARGETS * (TARGET_DATA_LENGTH + 1));
+constexpr std::size_t MAX_SYNC_PARAMETERS = 2 + (MAX_SYNC_TARGETS * (TARGET_DATA_LENGTH + 1));
 
 // レジスタアドレス。
 namespace reg {
@@ -39,7 +38,7 @@ constexpr uint8_t GOAL_POSITION = 42;
 constexpr uint8_t GOAL_TIME = 44;
 constexpr uint8_t GOAL_SPEED = 46;
 constexpr uint8_t PRESENT_POSITION = 56;
-}  // namespace reg
+} // namespace reg
 
 // 加速度・目標位置・目標時間・目標速度をまとめた指令値。
 // アドレス41から連続する4レジスタに対応する。
@@ -52,23 +51,22 @@ struct Target {
 };
 
 // ID からチェックサム直前までの総和のビット反転。
-uint8_t checksum(const uint8_t* data, std::size_t length);
+uint8_t checksum(const uint8_t *data, std::size_t length);
 
 // 命令パケットを packet へ組み立て、その長さを返す。
 // 引数が不正、または capacity が足りない場合は 0 を返す。
-std::size_t buildInstruction(uint8_t* packet, std::size_t capacity, uint8_t id,
-                             uint8_t instruction, const uint8_t* parameters,
-                             uint8_t parameter_count);
+std::size_t buildInstruction(uint8_t *packet, std::size_t capacity, uint8_t id, uint8_t instruction,
+                             const uint8_t *parameters, uint8_t parameter_count);
 
 // 受信したステータス本体 <エラービット> <パラメータ...> <チェックサム> を検証する。
 // body_length は応答ヘッダが示す長さ（パラメータ数 + 2）。
-bool verifyStatusChecksum(uint8_t response_id, uint8_t body_length, const uint8_t* body);
+bool verifyStatusChecksum(uint8_t response_id, uint8_t body_length, const uint8_t *body);
 
 // 16 ビット値は STS 仕様どおりリトルエンディアン。
-void encodeUint16(uint16_t value, uint8_t* data);
-uint16_t decodeUint16(const uint8_t* data);
+void encodeUint16(uint16_t value, uint8_t *data);
+uint16_t decodeUint16(const uint8_t *data);
 
 // 目標値を 7 バイトへ符号化する。
-void encodeTarget(const Target& target, uint8_t* data);
+void encodeTarget(const Target &target, uint8_t *data);
 
-}  // namespace domain::sts3215
+} // namespace domain::sts3215

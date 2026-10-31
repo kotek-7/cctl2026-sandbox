@@ -22,4 +22,4 @@ constexpr float fold_min = 400, fold_max = 1444, fold_speed = 1000;
 constexpr float grip_open = 1500, grip_closed = 500, grip_handoff = 700;
 constexpr float rotation_zero = 1024, counts_per_degree = 34.133335f;
 constexpr float rotation_speed = 90;
-}
+} // namespace config

@@ -53,3 +53,19 @@ STS3215はID=1、1Mbps、位置モードに設定済みであること。
 
 設定ファイル、ACK待ち、応答照合、自動復旧はない。
 通信形式はDESIGN.md、検証結果はVERIFICATION.md。`make test`で通信符号化・PIDの小さなテストを実行する。
+
+## フォーマット
+
+Rustはrustfmt、C/C++はclang-format 18.1.8を使用する。
+
+```sh
+rustup component add rustfmt
+uv tool install clang-format==18.1.8
+make format
+make format-check
+```
+
+設定はルートの `rustfmt.toml` と `.clang-format`。どちらも4スペース・100桁。
+対象はRust本体と、各基板の `src/`・`tests/` のGit管理された自作C/C++コード。
+新しいC/C++ファイルは `git add` 後に実行する。
+生成コード、外部ライブラリ、`led-music/` は対象外。CIでも `make format-check` を実行する。

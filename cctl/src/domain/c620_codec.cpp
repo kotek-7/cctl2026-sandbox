@@ -6,7 +6,7 @@ constexpr int32_t HALF_REV = COUNTS_PER_REV / 2;
 // C620 電流スケール: ±20000mA ↔ ±16384
 constexpr int32_t CURRENT_SCALE_NUM = 16384;
 constexpr int32_t CURRENT_SCALE_DEN = 20000;
-}  // namespace
+} // namespace
 
 Feedback decodeFeedback(const uint8_t data[8]) {
     Feedback fb = {};
@@ -69,7 +69,7 @@ void writeCommandSlot(uint8_t frame[8], uint8_t esc_id, int16_t raw) {
 }
 
 void CommandFrame::clear() {
-    for (uint8_t& byte : data_) {
+    for (uint8_t &byte : data_) {
         byte = 0;
     }
 }
@@ -82,4 +82,4 @@ bool CommandFrame::set(uint8_t esc_id, int16_t raw) {
     return true;
 }
 
-}  // namespace domain::c620
+} // namespace domain::c620

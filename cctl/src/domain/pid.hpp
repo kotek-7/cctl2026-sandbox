@@ -5,7 +5,7 @@ namespace domain {
 // 汎用 PID 制御器。経過時間 dt は呼び出し側が渡す。
 // 出力は ±out_limit にクランプし、飽和時は積分器を anti-windup する。
 class Pid {
-public:
+  public:
     Pid(float kp, float ki, float kd, float out_limit)
         : kp_(kp), ki_(ki), kd_(kd), out_limit_(out_limit) {}
 
@@ -15,8 +15,12 @@ public:
         kd_ = kd;
     }
 
-    void setOutLimit(float out_limit) { out_limit_ = out_limit; }
-    float outLimit() const { return out_limit_; }
+    void setOutLimit(float out_limit) {
+        out_limit_ = out_limit;
+    }
+    float outLimit() const {
+        return out_limit_;
+    }
 
     void reset();
 
@@ -24,7 +28,7 @@ public:
     // dt_s が 0 なら積分・微分を進めず P 項のみを返す。
     float update(float target, float measured, float dt_s);
 
-private:
+  private:
     float kp_;
     float ki_;
     float kd_;
@@ -34,4 +38,4 @@ private:
     float prev_error_ = 0.0f;
 };
 
-}  // namespace domain
+} // namespace domain

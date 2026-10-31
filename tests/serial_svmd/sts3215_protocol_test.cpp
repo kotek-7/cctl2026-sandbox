@@ -36,8 +36,8 @@ TEST_CASE("WRITE パケットはパラメータを載せる") {
                                                 parameters, sizeof(parameters));
 
     REQUIRE(length == 8);
-    CHECK(packet[2] == 2);     // ID
-    CHECK(packet[3] == 4);     // 長さ = パラメータ数 + 2
+    CHECK(packet[2] == 2); // ID
+    CHECK(packet[3] == 4); // 長さ = パラメータ数 + 2
     CHECK(packet[4] == INSTRUCTION_WRITE);
     CHECK(packet[5] == reg::TORQUE_ENABLE);
     CHECK(packet[6] == 0x01);
@@ -104,10 +104,10 @@ TEST_CASE("目標値は加速度・位置・時間・速度の順で並ぶ") {
     uint8_t data[TARGET_DATA_LENGTH] = {};
     encodeTarget(target, data);
 
-    CHECK(data[0] == 50);       // 加速度
-    CHECK(decodeUint16(&data[1]) == 2048);  // 位置
-    CHECK(decodeUint16(&data[3]) == 0);     // 時間
-    CHECK(decodeUint16(&data[5]) == 500);   // 速度
+    CHECK(data[0] == 50);                  // 加速度
+    CHECK(decodeUint16(&data[1]) == 2048); // 位置
+    CHECK(decodeUint16(&data[3]) == 0);    // 時間
+    CHECK(decodeUint16(&data[5]) == 500);  // 速度
 }
 
 TEST_CASE("SyncWrite のパラメータ領域は最大構成でも上限に収まる") {

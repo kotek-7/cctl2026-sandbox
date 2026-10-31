@@ -161,7 +161,7 @@ TEST_CASE("指令フレームは 4 台分を保持する") {
     CHECK(frame.set(3, 0x0333));
     CHECK(frame.set(4, 0x0444));
 
-    const uint8_t* data = frame.data();
+    const uint8_t *data = frame.data();
     CHECK(data[0] == 0x01);
     CHECK(data[1] == 0x11);
     CHECK(data[6] == 0x04);

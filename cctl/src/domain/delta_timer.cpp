@@ -19,4 +19,4 @@ void DeltaTimer::reset() {
     previous_ms_ = 0;
 }
 
-}  // namespace domain
+} // namespace domain

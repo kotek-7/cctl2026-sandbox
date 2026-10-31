@@ -31,4 +31,4 @@ float Pid::update(float target, float measured, float dt_s) {
     return clamped;
 }
 
-}  // namespace domain
+} // namespace domain

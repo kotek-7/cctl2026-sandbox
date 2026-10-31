@@ -12,4 +12,4 @@ struct CanFrame {
     uint8_t data[8] = {};
 };
 
-}  // namespace domain
+} // namespace domain

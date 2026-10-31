@@ -4,7 +4,7 @@
 
 namespace domain::sts3215 {
 
-uint8_t checksum(const uint8_t* data, std::size_t length) {
+uint8_t checksum(const uint8_t *data, std::size_t length) {
     uint16_t sum = 0;
     for (std::size_t i = 0; i < length; ++i) {
         sum = static_cast<uint16_t>(sum + data[i]);
@@ -12,13 +12,11 @@ uint8_t checksum(const uint8_t* data, std::size_t length) {
     return static_cast<uint8_t>(~sum);
 }
 
-std::size_t buildInstruction(uint8_t* packet, std::size_t capacity, uint8_t id,
-                             uint8_t instruction, const uint8_t* parameters,
-                             uint8_t parameter_count) {
+std::size_t buildInstruction(uint8_t *packet, std::size_t capacity, uint8_t id, uint8_t instruction,
+                             const uint8_t *parameters, uint8_t parameter_count) {
     const std::size_t length = static_cast<std::size_t>(parameter_count) + PACKET_OVERHEAD;
 
-    if (packet == nullptr || capacity < length ||
-        (parameters == nullptr && parameter_count != 0) ||
+    if (packet == nullptr || capacity < length || (parameters == nullptr && parameter_count != 0) ||
         parameter_count > MAX_TX_PARAMETERS) {
         return 0;
     }
@@ -37,7 +35,7 @@ std::size_t buildInstruction(uint8_t* packet, std::size_t capacity, uint8_t id,
     return length;
 }
 
-bool verifyStatusChecksum(uint8_t response_id, uint8_t body_length, const uint8_t* body) {
+bool verifyStatusChecksum(uint8_t response_id, uint8_t body_length, const uint8_t *body) {
     if (body == nullptr || body_length < 2 || body_length > (MAX_RX_PARAMETERS + 2)) {
         return false;
     }
@@ -50,20 +48,20 @@ bool verifyStatusChecksum(uint8_t response_id, uint8_t body_length, const uint8_
     return checksum(data, static_cast<std::size_t>(body_length) + 1) == body[body_length - 1];
 }
 
-void encodeUint16(uint16_t value, uint8_t* data) {
+void encodeUint16(uint16_t value, uint8_t *data) {
     data[0] = static_cast<uint8_t>(value & 0xFF);
     data[1] = static_cast<uint8_t>(value >> 8);
 }
 
-uint16_t decodeUint16(const uint8_t* data) {
+uint16_t decodeUint16(const uint8_t *data) {
     return static_cast<uint16_t>(data[0]) | static_cast<uint16_t>(data[1] << 8);
 }
 
-void encodeTarget(const Target& target, uint8_t* data) {
+void encodeTarget(const Target &target, uint8_t *data) {
     data[0] = target.acceleration;
     encodeUint16(target.position, &data[1]);
     encodeUint16(target.time, &data[3]);
     encodeUint16(target.speed, &data[5]);
 }
 
-}  // namespace domain::sts3215
+} // namespace domain::sts3215

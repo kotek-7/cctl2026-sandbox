@@ -6,13 +6,18 @@ namespace domain::el05 {
 
 uint32_t buildCanId(uint8_t comm_type, uint16_t data_area_2, uint8_t target_id) {
     return ((static_cast<uint32_t>(comm_type) & 0x1F) << 24) |
-           ((static_cast<uint32_t>(data_area_2) & 0xFFFF) << 8) |
-           static_cast<uint32_t>(target_id);
+           ((static_cast<uint32_t>(data_area_2) & 0xFFFF) << 8) | static_cast<uint32_t>(target_id);
 }
 
-uint8_t commType(uint32_t ext_id) { return static_cast<uint8_t>((ext_id >> 24) & 0x1F); }
-uint8_t targetId(uint32_t ext_id) { return static_cast<uint8_t>(ext_id & 0xFF); }
-uint16_t dataArea2(uint32_t ext_id) { return static_cast<uint16_t>((ext_id >> 8) & 0xFFFF); }
+uint8_t commType(uint32_t ext_id) {
+    return static_cast<uint8_t>((ext_id >> 24) & 0x1F);
+}
+uint8_t targetId(uint32_t ext_id) {
+    return static_cast<uint8_t>(ext_id & 0xFF);
+}
+uint16_t dataArea2(uint32_t ext_id) {
+    return static_cast<uint16_t>((ext_id >> 8) & 0xFFFF);
+}
 
 float uint16ToFloat(uint16_t raw, float min, float max) {
     return static_cast<float>(raw) * (max - min) / 65535.0f + min;
@@ -25,7 +30,7 @@ uint16_t floatToUint16(float value, float min, float max) {
     }
     const float ratio = (value - min) / span;
     if (!(ratio > 0.0f)) {
-        return 0;  // NaN もここに落ちる
+        return 0; // NaN もここに落ちる
     }
     if (ratio >= 1.0f) {
         return 65535;
@@ -95,4 +100,4 @@ float paramReplyFloat(const uint8_t data[8]) {
     return value;
 }
 
-}  // namespace domain::el05
+} // namespace domain::el05
