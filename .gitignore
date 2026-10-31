@@ -2,3 +2,7 @@
 **/.pio/
 **/.cache/
 /samples/svmd/fixed_angle/.vscode/
+
+# Separate existing music project and editor settings
+/led-music/
+/.vscode/

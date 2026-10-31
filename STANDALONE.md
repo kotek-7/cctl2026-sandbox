@@ -1,12 +1,6 @@
-# 現在の開発方針
+# 配置と由来
 
-元: `/home/kotek/dev/catchrobo2026`、基点 `7eefba9620cebc112ca7aadb2825fcf1e2b407ce`。
-このディレクトリは独立したGitクローン。名称にstandaloneが残るが、現在の方式はPC経由。
-
-`DualSense → USB → PC → USB CDC → 既存CCTL → CAN → 既存機体`
-
-CCTLのUSBホスト化・新基板への変更は行わない。
-ユーザー確認済みの範囲はr/θ/z手動操作、EE回転/畳み/把持、原点出し。
-GUI、AI/API、自動取得、ボーナス操作は外す。
-アーキテクチャの単純さを最優先し、ライブラリに直接乗る単一ループへ整理する。
-実装と手順はREADME.md参照。原点は手動位置合わせ後の確定方式。実機操作は行っていない。
+`/home/kotek/dev/cctl2026-sandbox` がこのGitプロジェクトのルート。
+元リポジトリ `/home/kotek/dev/catchrobo2026` を `7eefba9` でcloneした履歴を保持する。
+`led-music/` は別プロジェクトとして変更・追跡しない。
+操作方式は DualSense → PC → CCTL → CAN → 機体。
