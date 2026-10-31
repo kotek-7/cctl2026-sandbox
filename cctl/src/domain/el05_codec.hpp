@@ -3,7 +3,7 @@
 #include <cstdint>
 
 // RobStride EL05 の拡張ID・パラメータ定義とフィードバック復号。
-// 出典: docs/datasheets/robstride_el05_user_manual_260713.pdf
+// 参照資料: robstride_el05_user_manual_260713.pdf（本リポジトリには同梱しない）
 namespace domain::el05 {
 
 // 通信種別（拡張ID bit28..24）。

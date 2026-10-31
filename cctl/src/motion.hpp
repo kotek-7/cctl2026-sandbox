@@ -11,45 +11,48 @@ struct AxisMotion {
     float speed = 0;
 };
 
-inline void referenceAxis(AxisMotion &axis, unsigned i, float measured, bool contact) {
-    if (i == 1 || axis.referenced || !contact)
+inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool contact) {
+    if (index == 1 || axis.referenced || !contact)
         return;
-    axis.offset = measured - config::origin[i] * config::native_per_unit[i];
+    axis.offset = measured - config::origin[index] * config::native_per_unit[index];
     axis.target = measured;
     axis.speed = 0;
     axis.referenced = true;
 }
 
-inline void moveAxis(AxisMotion &axis, unsigned i, float measured, int input, float dt,
+inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input, float dt,
                      bool contact) {
-    const float native = config::native_per_unit[i];
-    const float acceleration = config::speed[i] / config::ramp_seconds;
-    const float desired = input * config::speed[i] / 1000.0f;
-    float speed =
-        axis.speed + std::clamp(desired - axis.speed, -acceleration * dt, acceleration * dt);
+    const float native_per_unit = config::native_per_unit[index];
+    const float acceleration = config::speed[index] / config::ramp_seconds;
+    const float requested_speed = input * config::speed[index] / 1000.0f;
+    float speed = axis.speed +
+                  std::clamp(requested_speed - axis.speed, -acceleration * dt, acceleration * dt);
+    // v² = 2ad から、端点までに停止できる速度を求める。
     if (axis.referenced) {
-        const float position = (measured - axis.offset) / native;
-        const float distance = std::max(0.0f, speed > 0 ? config::maximum[i] - position
-                                                        : position - config::minimum[i]);
-        const float limit = std::sqrt(2 * acceleration * distance);
-        speed = std::clamp(speed, -limit, limit);
+        const float position = (measured - axis.offset) / native_per_unit;
+        const float distance = std::max(0.0f, speed > 0 ? config::maximum[index] - position
+                                                        : position - config::minimum[index]);
+        const float stopping_speed = std::sqrt(2 * acceleration * distance);
+        speed = std::clamp(speed, -stopping_speed, stopping_speed);
     }
     // 接点への押し込みは、原点未登録でも止める。残っている位置目標も解除する。
-    const float direction = i == 0 ? 1.0f : i == 2 ? -1.0f : 0.0f;
-    if (contact && (speed * direction > 0 || (axis.target - measured) / native * direction > 0)) {
+    const float direction = config::contact_direction[index];
+    if (contact &&
+        (speed * direction > 0 || (axis.target - measured) / native_per_unit * direction > 0)) {
         speed = 0;
         axis.target = measured;
     }
     if (speed == 0 && axis.speed != 0)
         axis.target = measured;
     if (speed != 0) {
-        const float lead = std::abs(config::speed[i] * native) * 0.1f;
-        axis.target =
-            std::clamp(axis.target + speed * native * dt, measured - lead, measured + lead);
+        const float max_target_lead =
+            std::abs(config::speed[index] * native_per_unit) * config::target_lead_seconds;
+        axis.target = std::clamp(axis.target + speed * native_per_unit * dt,
+                                 measured - max_target_lead, measured + max_target_lead);
         if (axis.referenced) {
-            const float target = std::clamp((axis.target - axis.offset) / native,
-                                            config::minimum[i], config::maximum[i]);
-            axis.target = axis.offset + target * native;
+            const float target = std::clamp((axis.target - axis.offset) / native_per_unit,
+                                            config::minimum[index], config::maximum[index]);
+            axis.target = axis.offset + target * native_per_unit;
         }
     }
     axis.speed = speed;

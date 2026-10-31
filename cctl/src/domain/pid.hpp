@@ -2,7 +2,7 @@
 
 namespace domain {
 
-// 汎用 PID 制御器。経過時間 dt は呼び出し側が渡す。
+// 経過時間 dt は呼び出し側が渡す。
 // 出力は ±out_limit にクランプし、飽和時は積分器を anti-windup する。
 class Pid {
   public:

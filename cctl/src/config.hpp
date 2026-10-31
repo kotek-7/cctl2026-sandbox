@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
 
-// この1台の値。r:mm、θ:deg、z:mm。変更後はCCTLを書き直す。
+// 配列の順序は r / θ / z。機体座標の単位は mm / deg / mm。
+// モータ座標の単位は rad / deg / deg。
 namespace config {
 constexpr float native_per_unit[3] = {-0.04f, 132.02206f, -96.016f};
 constexpr float origin[3] = {570, 0, 0};
@@ -10,6 +11,8 @@ constexpr float minimum[3] = {0, 0, 0};
 constexpr float maximum[3] = {570, 0, 315};
 constexpr float speed[3] = {600, 120, 200};
 constexpr float ramp_seconds = 0.2f;
+constexpr float target_lead_seconds = 0.1f;
+constexpr float contact_direction[3] = {1, 0, -1};
 constexpr uint32_t timeout_ms = 250;
 constexpr uint32_t feedback_ms = 200;
 constexpr uint8_t el05_id = 127, host_id = 253;
