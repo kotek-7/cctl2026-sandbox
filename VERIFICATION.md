@@ -1,19 +1,22 @@
 # 検証記録
 
-2026-10-31。PC側をRustの3モジュール（main / robot / board）へ置き換えた後の記録。
-Python版とその依存設定は削除済み。
+2026-10-31。PC入力送信と基板直接制御へ置換した版。
 
-`make test` 成功:
+以下が成功:
 
-- Rust 14テスト。起動時の出力無効化、原点/中立条件、接点、PS保持停止、RUN応答待ちとその中断、通信断、モータ異常、入力処理遅延、終了時の停止送信。
-- r/zの符号と制動、EE回転範囲、PWM端点への到達、不正設定の拒否。
-- serialportの仮想端末ペアに模擬基板を接続し、実際の設定照合・操縦ループ・終了処理を検証。模擬基板はtests/rust内のみ。
-- CTestの5テスト: CCTL・SerialSVMD・SVMDのロジック、モータ/STS通信ドライバ。
+- `make build`：PC RustのReleaseビルド。
+- `make build-cctl` / `make build-serial-svmd` / `make build-svmd`：3基板のビルド。
+- `make test`：通信符号化、多回転角、PID、時刻差の55テスト・172アサーション。
+- `cargo clippy --locked --all-targets -- -D warnings`、`cargo fmt --check`。
+- Release実行ファイルの`--help`、`git diff --check`。
+- 本番のUSBパーサを一時的なホストプログラムで実行し、正常な7項目、符号、CR終端、項目不足/過剰、値の範囲外、区切り欠落、不正文字を確認。
 
-`cargo run --locked -- --help`、`cargo clippy --locked --all-targets -- -D warnings`、
-`cargo fmt --check`、`git diff --check` も成功。
-Rust依存はCargo.lockに固定。
+CCTLはFlash 29KB程度、SerialSVMDは8KB程度、SVMDは42KB程度。
+PC本体は2ファイル79行。基板の生成コード・低水準ドライバは別に保持する。
+旧仮想シリアル試験・模擬基板・HALモックは削除し、今回の検証には使用していない。
 
-基板FWのソースは今回変更していない。
-実DualSense、USB実接続、実機での移動・停止距離・サーボ初期姿勢は未確認。
-基板への書込みも未実施。仮想端末テストは実機の確認を代替しない。
+実機への書込み、DualSenseの実入力、3軸の方向・端点・停止距離、EE初期姿勢は未確認。
+基板を含め通信仕様を変更したため、旧版と混在させない。
+実機確認では、原点を手動取得し、各軸を低速で短く動かして方向・端点を確認する。
+続いてEEの固定開始姿勢、PS保持、通信を止めた際の出力解除を確認する。
+この実機確認はまだ実施していない。
