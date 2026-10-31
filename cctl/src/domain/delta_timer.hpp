@@ -4,9 +4,8 @@
 
 namespace domain {
 
-// ミリ秒 tick の系列から、前回呼び出しからの経過秒を求める。
-// 初回は基準が無いので 0 を返す。差は符号なし演算なので tick の
-// 32 ビット巻き戻りをそのまま跨げる。
+// ミリ秒のtickから経過秒を求める。初回は0を返す。
+// 符号なしの差分を使い、32bitのtickが0に戻る場合も扱う。
 class DeltaTimer {
   public:
     float update(uint32_t now_ms);

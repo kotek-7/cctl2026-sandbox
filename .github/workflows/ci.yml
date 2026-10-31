@@ -1,7 +1,5 @@
 name: CI
 
-# 基板ロジック、PC操縦プログラム、SVMDを検証する。
-
 on:
   push:
     branches: [main]

@@ -39,7 +39,7 @@ extern "C" void loop() {
             servoTarget(static_cast<int16_t>(position));
         servoEnable(data[0]);
     }
-    // 正常な指令だけが受信期限を延長する。途絶時はトルクを解除する。
+    // 最後の正常な指令から250msを超えたらトルクを解除する。
     if (HAL_GetTick() - last_command > 250) {
         servoEnable(false);
         HAL_Delay(1);

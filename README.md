@@ -65,8 +65,8 @@ r・zの原点は最初の接触で一度だけ登録する。起動時からス
 
 ## ソース構成
 
-- `src/main.rs` → `src/pad.rs`：入力・送信。
-- `cctl/src/app.cpp` → `motors.cpp` / `ee.cpp`：基板のループ・機体制御。
+- `src/main.rs`：20ms周期の送信。`src/pad.rs`：パッド入力の読取り。
+- `cctl/src/app.cpp`：基板のメインループ。`motors.cpp` / `ee.cpp`：軸とEEの制御。
 - `cctl/src/config.hpp`：機体定数。変更後は再ビルド・書込み。
 - `cctl/src/motion.hpp` / `input.hpp`：軸の座標・制限計算とUSB入力判定。HALに依存せず直接テストする。
 - `serial_svmd/src/app.cpp`、`svmd/src/main.cpp`：CAN目標値の出力。

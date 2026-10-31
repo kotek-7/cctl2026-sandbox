@@ -5,7 +5,7 @@
 using domain::Pid;
 
 TEST_CASE("dt が 0 なら P 項だけが出る") {
-    // 初回呼び出しは経過時間が不明なので、積分・微分を進めてはいけない。
+    // 初回は経過時間を0とし、積分・微分を更新しない。
     Pid pid(2.0f, 100.0f, 100.0f, 1000.0f);
 
     CHECK(pid.update(1.0f, 0.0f, 0.0f) == doctest::Approx(2.0f));
@@ -59,7 +59,7 @@ TEST_CASE("reset で内部状態が消える") {
 
     pid.reset();
 
-    // reset していなければ積分が 2.0 まで伸びている。
+    // reset前の積分値を引き継がず、今回の1.0だけを出力する。
     CHECK(pid.update(1.0f, 0.0f, 1.0f) == doctest::Approx(1.0f));
 }
 
@@ -71,7 +71,7 @@ TEST_CASE("ゲインは後から差し替えられる") {
 }
 
 TEST_CASE("出力制限を実行時に変えられる") {
-    // m3508_max_rpm は位置ループの出力制限そのもの。PIDへ届かないと効かない。
+    // 出力上限を10から50へ変更すると、飽和時の出力も50になる。
     domain::Pid pid(100.0f, 0.0f, 0.0f, 10.0f);
     CHECK(pid.update(100.0f, 0.0f, 0.01f) == doctest::Approx(10.0f));
     pid.setOutLimit(50.0f);

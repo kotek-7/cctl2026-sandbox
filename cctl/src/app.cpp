@@ -6,7 +6,7 @@
 #include <algorithm>
 
 namespace {
-// USB割込みはコピーだけ。行の解析と機体操作はloopで行う。
+// USB割込みから受け取った行をloopで解析し、機体を操作する。
 volatile char received_line[80];
 volatile bool line_ready = false;
 int input[6]{};
@@ -37,7 +37,7 @@ void readInput() {
 } // namespace
 
 // USB受信は行の途中で分割される。改行まで組み立て、最新の完全な1行を渡す。
-// 長すぎる行は改行まで捨て、途中の文字列を別の指令として解釈しない。
+// 長すぎる行は、末尾を別の指令と誤認しないよう改行まで捨てる。
 extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
     static char line[80];
     static unsigned used = 0;

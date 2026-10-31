@@ -59,7 +59,7 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
         const float wrapped = decoded.position_rad;
         if (!has_wrapped_position_) {
             if (position_ready_) {
-                // MECH_POSと同じ周回になる、最も近い周期位置を選ぶ。
+                // 周回数を加えて、MECH_POSに最も近い位置に合わせる。
                 position_rad_ =
                     wrapped + std::round((position_rad_ - wrapped) / POSITION_SPAN) * POSITION_SPAN;
             } else {
@@ -88,7 +88,7 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
         const float value = codec::paramReplyFloat(data);
         if (index == codec::param::MECH_POS && std::isfinite(value)) {
             if (has_wrapped_position_) {
-                // 非同期のMECH_POS値で小さく飛ばさず、周回数だけを補正する。
+                // MECH_POSとは取得時刻が異なるため、位置を置き換えず周回数だけ補正する。
                 position_rad_ +=
                     std::round((value - position_rad_) / POSITION_SPAN) * POSITION_SPAN;
             } else {
@@ -97,7 +97,7 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
             position_ready_ = true;
             feedback_.position_rad = position_rad_;
         }
-        // 設定応答だけでは位置フィードバックの鮮度を更新しない。
+        // パラメータ応答は通常の位置フィードバックと区別してfalseを返す。
         return false;
     }
     default:

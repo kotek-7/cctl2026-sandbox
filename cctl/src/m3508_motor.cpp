@@ -14,7 +14,7 @@ void M3508Motor::setEnabled(bool enabled) {
     if (enabled_ == enabled)
         return;
     enabled_ = enabled;
-    // 再有効化時に、停止前の積分値や停止期間を制御計算へ持ち込まない。
+    // 再開後の計算に、停止前の積分値や停止中の経過時間を使わない。
     position_pid_.reset();
     velocity_pid_.reset();
     timer_.reset();

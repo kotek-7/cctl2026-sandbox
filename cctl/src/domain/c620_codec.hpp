@@ -48,7 +48,7 @@ int16_t currentToRaw(int32_t milli_amp);
 // 指令生値[±16384] を電流[mA] へ戻す。
 int32_t rawToCurrent(int16_t raw);
 
-// 指令フレームは 4 台分をまとめて運ぶ。ESC ID で載るフレームが決まる。
+// 電流指令はESC ID 1..4と5..8のグループごとに1フレームへまとめる。
 constexpr uint16_t COMMAND_ID_1_TO_4 = 0x200;
 constexpr uint16_t COMMAND_ID_5_TO_8 = 0x1FF;
 constexpr uint8_t MIN_ESC_ID = 1;
@@ -62,11 +62,8 @@ uint16_t groupCommandId(uint8_t esc_id);
 // ESC ID 1..4 と 5..8 は別フレームだが、フレーム内の位置は同じ並びになる。
 void writeCommandSlot(uint8_t frame[8], uint8_t esc_id, int16_t raw);
 
-// 同一グループ最大 4 台分の電流指令をまとめるフレーム。
-//
-// C620 の指令フレームは 1 本で 4 台分を運ぶ。1 台ごとに別フレームで送ると、
-// 後から届いたフレームが他の台の指令を 0 で上書きしてしまう。
-// 同じグループの台は必ずこのフレームに集めてから 1 回で送る。
+// 同一グループの最大4台分をまとめて送る。
+// 1台ずつ送ると、他の台の指令が未設定スロットの0で上書きされる。
 class CommandFrame {
   public:
     explicit CommandFrame(uint16_t command_id) : command_id_(command_id) {}
@@ -78,7 +75,7 @@ class CommandFrame {
         return data_;
     }
 
-    // 全スロットを 0 にする。送信のたびに呼び、書かれなかった台は 0 電流になる。
+    // 送信ごとに全スロットを0に戻す。未設定の台には電流0を指令する。
     void clear();
 
     // esc_id がこのフレームの担当なら書き込んで true を返す。
