@@ -1,83 +1,17 @@
-//! Single-owner control state. No threads, shared state, sockets or request dispatch.
+//! 単一所有者の運転状態。通信はmainのループが実行する。
 use crate::{
-    application::settings::Settings,
+    config::Config,
     input::ControllerState,
-    machine::{MachineController, MachineProfile, ee},
+    motion::MachineController,
     protocol::{
         device::parse_device_info,
         serial_svmd, svmd,
         telemetry::{RunMode, Telemetry, parse_telemetry},
     },
+    settings::Settings,
 };
 use anyhow::{Context, Result, bail, ensure};
-use serde::Deserialize;
 use std::time::{Duration, Instant};
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct Config {
-    pub machine: MachineProfile,
-    pub grip_open: [f32; 3],
-    pub grip_closed: [f32; 3],
-    pub grip_handoff_open: [f32; 3],
-}
-impl Config {
-    pub fn parse(text: &str) -> Result<Self> {
-        let c: Self = toml::from_str(text)?;
-        c.machine.validate()?;
-        ensure!(c.machine.axes.len() == 3, "r/theta/zの3軸が必要です");
-        for (i, name) in ["r", "theta", "z"].iter().enumerate() {
-            ensure!(
-                c.machine.axes[i].name == *name && c.machine.axes[i].slot == i as u8,
-                "軸順はr/theta/z、slotは0/1/2です"
-            );
-        }
-        ensure!(
-            c.machine.bonus.is_none() && c.machine.dc_motors.is_empty(),
-            "ボーナス/DC機構は最小版の対象外です"
-        );
-        ensure!(
-            c.machine.pwm_servos.len() == 4,
-            "PWMは畳み1本・把持3本が必要です"
-        );
-        for (channel, name) in ["ee_fold", "ee_grip_1", "ee_grip_2", "ee_grip_3"]
-            .iter()
-            .enumerate()
-        {
-            let s = &c.machine.pwm_servos[channel];
-            ensure!(
-                s.name == *name && s.channel == channel as u8 && s.enabled,
-                "PWMの順番/割当/有効状態を確認してください"
-            );
-            if channel > 0 {
-                for pose in [c.grip_open, c.grip_closed, c.grip_handoff_open] {
-                    ensure!(
-                        pose[channel - 1].is_finite()
-                            && (f32::from(s.minimum_us)..=f32::from(s.maximum_us))
-                                .contains(&pose[channel - 1]),
-                        "把持設定が範囲外です"
-                    );
-                }
-            }
-        }
-        let servos = &c
-            .machine
-            .serial_svmd
-            .as_ref()
-            .context("EE回転設定が必要です")?
-            .servos;
-        ensure!(
-            servos.len() == 1 && servos[0].name == "ee_rotation" && servos[0].enabled,
-            "STSはEE回転1本のみ対応します"
-        );
-        ensure!(
-            c.machine.axes[0].limit.is_some() && c.machine.axes[2].limit.is_some(),
-            "r/zの原点接点が必要です"
-        );
-        Ok(c)
-    }
-}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Mode {
     Setup,
@@ -154,16 +88,7 @@ impl Control {
         self.mode != Mode::Setup && self.settings.ready()
     }
     pub fn origins_ready(&self) -> bool {
-        self.model
-            .origin_states(self.telemetry.as_ref())
-            .iter()
-            .all(|o| o.captured)
-    }
-    fn rotation_axis(&self) -> ee::Axis {
-        ee::axes(&self.config.machine)
-            .into_iter()
-            .find(|a| a.name == "ee_rotation")
-            .expect("validated rotation axis")
+        self.model.origins_ready()
     }
     fn health(&self, now: Instant) -> Result<()> {
         ensure!(
@@ -230,10 +155,10 @@ impl Control {
         if let Some(s) = svmd::parse_state(line) {
             self.pwm[s.channel as usize] = Some((s, now));
         }
-        if let Some(s) = serial_svmd::parse_state(line) {
-            if s.id == self.config.machine.serial_svmd.as_ref().unwrap().servos[0].id {
-                self.rotation = Some((s, now));
-            }
+        if let Some(s) = serial_svmd::parse_state(line)
+            && s.id == self.config.machine.rotation.id
+        {
+            self.rotation = Some((s, now));
         }
         if let Some((_, detail)) = serial_svmd::parse_diagnostic(line) {
             bail!("STS: {detail}");
@@ -342,7 +267,7 @@ impl Control {
             self.pwm_goal[i] = pulse;
             self.pwm_velocity[i] = 0.;
         }
-        let axis = self.rotation_axis();
+        let axis = self.config.machine.rotation.clone();
         let theta = self
             .model
             .axis_position("theta", self.telemetry.as_ref())
@@ -422,7 +347,7 @@ impl Control {
                     .to_cctl_line()
                 });
             }
-            let id = self.config.machine.serial_svmd.as_ref().unwrap().servos[0].id;
+            let id = self.config.machine.rotation.id;
             self.out
                 .push(serial_svmd::Command::Read { id }.to_cctl_line());
         }
@@ -477,10 +402,11 @@ impl Control {
         } else {
             self.home_since = None;
         }
-        if input.buttons[6] != 0 && old[6] == 0 {
-            if let Err(e) = self.start(now, input) {
-                self.message = e.to_string();
-            }
+        if input.buttons[6] != 0
+            && old[6] == 0
+            && let Err(e) = self.start(now, input)
+        {
+            self.message = e.to_string();
         }
         if self.mode == Mode::AwaitRun {
             ensure!(
@@ -492,7 +418,7 @@ impl Control {
             {
                 self.mode = Mode::Running;
                 self.message = "手動運転".into();
-                let axis = self.rotation_axis();
+                let axis = self.config.machine.rotation.clone();
                 let theta = self
                     .model
                     .axis_position("theta", self.telemetry.as_ref())
@@ -587,7 +513,7 @@ impl Control {
                 .to_cctl_line(),
             );
         }
-        let axis = self.rotation_axis();
+        let axis = self.config.machine.rotation.clone();
         self.field += axis.rotation_trim_velocity(input) * scale * dt;
         let theta = self
             .model
@@ -635,7 +561,7 @@ fn pwm_step(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transport::simulator::Simulator;
+    use crate::simulator::Simulator;
 
     struct Rig {
         control: Control,

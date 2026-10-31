@@ -7,17 +7,7 @@ autobins = false
 
 [[bin]]
 name = "simple"
-path = "src/bin/simple.rs"
-
-# 旧通信経路は回帰テスト時だけビルドする。
-[[bin]]
-name = "host"
 path = "src/main.rs"
-required-features = ["test-harness"]
-
-[features]
-default = []
-test-harness = []
 
 [dependencies]
 anyhow = "1"

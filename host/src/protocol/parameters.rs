@@ -1,11 +1,10 @@
 //! パラメータ指令と適用値応答の共通表現。
-use super::{dcmd, serial_svmd, svmd};
+use super::{serial_svmd, svmd};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParameterBoard {
     Cctl,
     Svmd,
-    Dcmd,
     SerialSvmd,
 }
 
@@ -26,7 +25,6 @@ impl ParameterValue {
         match self.key.board {
             ParameterBoard::Cctl => format!("PARAM {} {:.5}", self.key.id, self.value),
             ParameterBoard::Svmd => svmd::parameter_line(self.key.id, self.value),
-            ParameterBoard::Dcmd => dcmd::parameter_line(self.key.id, self.value),
             ParameterBoard::SerialSvmd => serial_svmd::parameter_line(self.key.id, self.value),
         }
     }
@@ -51,7 +49,6 @@ impl ParameterValue {
         let (board, data) = body.split_once(" data=")?;
         let board = match board {
             "772" => ParameterBoard::Svmd,
-            "788" => ParameterBoard::Dcmd,
             "804" => ParameterBoard::SerialSvmd,
             _ => return None,
         };

@@ -17,8 +17,7 @@ case "${1:-help}" in
         exec host/target/debug/simple --simulate
         ;;
     test)
-        cargo test --locked --manifest-path host/Cargo.toml --lib --test simple_console
-        cargo test --locked --manifest-path host/Cargo.toml --features test-harness --test simulated_host
+        cargo test --locked --manifest-path host/Cargo.toml
         cmake -S tests -B tests/build -G Ninja
         cmake --build tests/build
         ctest --test-dir tests/build --output-on-failure

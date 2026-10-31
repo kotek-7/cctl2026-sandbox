@@ -1,12 +1,22 @@
-//! コントローラ入力の読み取り。
-//!
-//! gilrs の名前付きコントロールを、cctl が期待する軸/ボタンのインデックス順
-//! （ROS `joy` 由来の SDL GameController 準拠）に対応付ける。
-//! 軸の符号やボタン番号は実機に合わせて調整できるよう、この対応表に集約する。
+#[derive(Clone, Default, serde::Serialize)]
+pub struct ControllerState {
+    /// LX, LY, RX, RY, L2, R2 の順（各 -1.0..=1.0）。
+    pub axes: [f32; 6],
+    /// 17 個のボタン（押下で 1、非押下で 0）。
+    pub buttons: [u8; 17],
+}
+
+impl ControllerState {
+    pub fn machine_axis(&self, index: usize) -> Option<f32> {
+        match index {
+            0..=5 => Some(self.axes[index]),
+            6 => Some(self.axes[5] - self.axes[4]),
+            _ => None,
+        }
+    }
+}
 
 use gilrs::{Axis, Button, Gamepad};
-
-use super::ControllerState;
 
 /// 接続中のゲームパッドから現在の状態を読み取る。
 pub fn read(gamepad: &Gamepad) -> ControllerState {

@@ -1,8 +1,4 @@
-pub mod board;
-pub mod can;
-pub mod dcmd;
 pub mod device;
-pub mod inputs;
 pub mod parameters;
 pub mod serial_svmd;
 pub mod svmd;
