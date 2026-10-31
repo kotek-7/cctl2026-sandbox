@@ -85,6 +85,7 @@ uint16_t floatToUint16(float value, float min, float max);
 
 // フィードバックフレーム（comm_type = 2）を復号する。
 Feedback decodeFeedback(uint32_t ext_id, const uint8_t data[8]);
+float positionDelta(uint16_t previous, uint16_t current);
 
 // パラメータ書込のペイロード（Byte0-1 = index, Byte4-7 = 値）。
 void encodeParamFloat(uint16_t param, float value, uint8_t out[8]);

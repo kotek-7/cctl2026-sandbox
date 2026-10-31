@@ -43,7 +43,6 @@ void motorsBegin() {
                       std::abs(config::speed[0] * config::native_per_unit[0]) /
                           config::ramp_seconds);
     HAL_Delay(20);
-    r.requestParam(domain::el05::param::MECH_POS);
 }
 
 // 制御用の実測値と、r自身が報告した異常を受け取る。
@@ -75,18 +74,16 @@ void motorsReceive() {
 
 // 接点でr・zの座標を決める。他軸やPCの接続を待たず、最初の接触だけを使う。
 void motorsReference(bool r_contact, bool z_contact) {
-    if (feedback_received[0] && !feedback_stale[0] && r.positionReady())
+    if (feedback_received[0] && !feedback_stale[0])
         referenceAxis(axes[0], 0, measured(0), r_contact);
     if (feedback_received[2] && !feedback_stale[2])
         referenceAxis(axes[2], 2, measured(2), z_contact);
 }
 
-// PC入力が有効なら、位置を取得した軸から操作を許可する。返信途絶では解除しない。
-void motorsEnable(bool input_valid) {
+// 初回PC入力から出力する。モータ応答は開始条件にせず、rの異常ビットだけを出力停止に使う。
+void motorsEnable(bool input_received) {
     for (unsigned i = 0; i < 3; ++i) {
-        const bool ready =
-            feedback_received[i] && (i != 0 || (r.positionReady() && r.faultBits() == 0));
-        const bool requested = input_valid && ready;
+        const bool requested = input_received && (i != 0 || r.faultBits() == 0);
         if (enabled[i] == requested)
             continue;
         axes[i].speed = 0;
@@ -118,7 +115,7 @@ void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
     z.setTargetRpm(axes[2].speed * config::native_per_unit[2] / 6);
 }
 
-// θ・zへ電流、rへ角速度を送る。rの機械角は端点減速のために読み続ける。
+// θ・zへ電流、rへ角速度を送る。rの角度と異常はこの指令への通常返信で受け取る。
 void motorsUpdate(uint32_t now) {
     static uint32_t current_at = 0, velocity_at = 0;
     if (now - current_at >= 1) {
@@ -134,7 +131,13 @@ void motorsUpdate(uint32_t now) {
             r.setSpeed(axes[0].speed * config::native_per_unit[0]);
         else
             r.disable(r.faultBits() != 0);
-        r.requestParam(domain::el05::param::MECH_POS);
         velocity_at = now;
     }
+}
+
+// 出力の可否とは独立して、CCTLが受け取った通信状態を表示へ渡す。
+MotorStatus motorsStatus() {
+    return {{feedback_received[0] && !feedback_stale[0], feedback_received[1] && !feedback_stale[1],
+             feedback_received[2] && !feedback_stale[2]},
+            r.faultBits()};
 }

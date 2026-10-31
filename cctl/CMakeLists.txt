@@ -26,14 +26,13 @@ add_executable(${CMAKE_PROJECT_NAME})
 add_subdirectory(cmake/stm32cubemx)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/status.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/app.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/motors.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ee.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/can_bus.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/el05_motor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/m3508_motor.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/domain/pid.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/domain/delta_timer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/domain/c620_codec.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/domain/el05_codec.cpp
 )

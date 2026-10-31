@@ -17,7 +17,7 @@ constexpr uint32_t timeout_ms = 250;
 constexpr uint32_t feedback_ms = 200;
 constexpr uint8_t el05_id = 127, host_id = 253;
 constexpr uint8_t theta_id = 1, z_id = 2;
-constexpr float velocity_kp = 7, velocity_ki = 0.5f, velocity_kd = 0.05f;
+constexpr float velocity_kp = 7;
 constexpr float max_current_ma = 10000;
 constexpr float el05_current = 10;
 constexpr uint16_t pwm_can = 0x300, rotation_can = 0x320;

@@ -64,6 +64,17 @@ Feedback decodeFeedback(uint32_t ext_id, const uint8_t data[8]) {
     return feedback;
 }
 
+// 通常返信の角度の折返しを補正し、返信間の移動量をradで求める。
+// 返信間の移動が半周期未満であることを前提にする。
+float positionDelta(uint16_t previous, uint16_t current) {
+    int32_t delta = static_cast<int32_t>(current) - previous;
+    if (delta > 32767)
+        delta -= 65536;
+    if (delta < -32768)
+        delta += 65536;
+    return delta * (POSITION_MAX - POSITION_MIN) / 65535.0f;
+}
+
 // 速度指令や電流上限などの実数設定を、EL05が受け取る書込み形式にする。
 void encodeParamFloat(uint16_t param, float value, uint8_t out[8]) {
     for (int i = 0; i < 8; ++i) {
@@ -84,7 +95,7 @@ void encodeParamU8(uint16_t param, uint8_t value, uint8_t out[8]) {
     out[4] = value;
 }
 
-// MECH_POSなどの値を問い合わせるため、EL05の読出し要求を作る。
+// EL05の指定パラメータを問い合わせる読出し要求を作る。
 void encodeParamRequest(uint16_t param, uint8_t out[8]) {
     for (int i = 0; i < 8; ++i) {
         out[i] = 0;
@@ -100,12 +111,12 @@ void encodeSave(uint8_t out[8]) {
     }
 }
 
-// 返ってきた値がMECH_POSなどのどのパラメータかを識別する。
+// EL05の応答がどのパラメータの値かを識別する。
 uint16_t paramReplyIndex(const uint8_t data[8]) {
     return static_cast<uint16_t>(data[0]) | (static_cast<uint16_t>(data[1]) << 8);
 }
 
-// MECH_POSの返信を、rの位置確認に使うラジアン値として取り出す。
+// EL05のパラメータ応答から実数値を取り出す。
 float paramReplyFloat(const uint8_t data[8]) {
     float value = 0.0f;
     std::memcpy(&value, &data[4], sizeof(float));

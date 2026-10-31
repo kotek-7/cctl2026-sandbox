@@ -130,3 +130,12 @@ TEST_CASE("EL05の運転状態と異常ビットを分離して読む") {
     CHECK(feedback.fault_bits == 9);
     CHECK(feedback.motor_id == 0x7F);
 }
+
+TEST_CASE("EL05の通常返信は正逆の折返しを連続した移動量に変える") {
+    const float unit = (POSITION_MAX - POSITION_MIN) / 65535.0f;
+    CHECK(positionDelta(65000, 1000) == doctest::Approx(1536 * unit));
+    CHECK(positionDelta(1000, 65000) == doctest::Approx(-1536 * unit));
+    CHECK(positionDelta(30000, 40000) == doctest::Approx(10000 * unit));
+    CHECK(positionDelta(40000, 30000) == doctest::Approx(-10000 * unit));
+    CHECK(positionDelta(12345, 12345) == 0);
+}

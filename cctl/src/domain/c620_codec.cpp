@@ -51,7 +51,7 @@ float MultiTurnCounter::degrees() const {
     return static_cast<float>(counts_) * 360.0f / static_cast<float>(COUNTS_PER_REV);
 }
 
-// PIDで決めた電流を、C620の電流指令に合わせる。入力はmA。
+// P制御で決めた電流を、C620の電流指令に合わせる。入力はmA。
 int16_t currentToRaw(int32_t milli_amp) {
     return static_cast<int16_t>(milli_amp * CURRENT_SCALE_NUM / CURRENT_SCALE_DEN);
 }

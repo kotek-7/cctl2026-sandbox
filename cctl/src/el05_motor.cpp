@@ -1,5 +1,4 @@
 #include "el05_motor.hpp"
-#include <cmath>
 
 namespace {
 namespace codec = domain::el05;
@@ -47,34 +46,16 @@ bool El05Motor::writeParamU8(uint16_t param, uint8_t value) {
     return sendFrame(codec::comm::WRITE_PARAM, data);
 }
 
-// 通常の位置返信とは別に、EL05の設定値を問い合わせる。rの位置確認ではMECH_POSを読む。
-bool El05Motor::requestParam(uint16_t param) {
-    uint8_t data[8] = {};
-    codec::encodeParamRequest(param, data);
-    return sendFrame(codec::comm::READ_PARAM, data);
-}
-
-// rの異常情報と機械角を受け取る。対象モータの有効な返信ならtrueを返す。
+// 通常返信の角度を積算し、速度・温度・異常も更新する。最初の角度を0とする。
 bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
-    switch (codec::commType(ext_id)) {
-    case codec::comm::FEEDBACK:
-        if (static_cast<uint8_t>(codec::dataArea2(ext_id)) != motor_id_)
-            return false;
-        feedback_ = codec::decodeFeedback(ext_id, data);
-        return true;
-    case codec::comm::READ_PARAM: {
-        if (codec::targetId(ext_id) != host_id_ ||
-            static_cast<uint8_t>(codec::dataArea2(ext_id)) != motor_id_ ||
-            ((ext_id >> 16) & 0xFF) != 0 || codec::paramReplyIndex(data) != codec::param::MECH_POS)
-            return false;
-        const float value = codec::paramReplyFloat(data);
-        if (!std::isfinite(value))
-            return false;
-        position_rad_ = value;
-        position_ready_ = true;
-        return true;
-    }
-    default:
+    if (codec::commType(ext_id) != codec::comm::FEEDBACK ||
+        static_cast<uint8_t>(codec::dataArea2(ext_id)) != motor_id_)
         return false;
-    }
+    const uint16_t raw = (static_cast<uint16_t>(data[0]) << 8) | data[1];
+    if (position_ready_)
+        position_rad_ += codec::positionDelta(last_position_raw_, raw);
+    last_position_raw_ = raw;
+    position_ready_ = true;
+    feedback_ = codec::decodeFeedback(ext_id, data);
+    return true;
 }

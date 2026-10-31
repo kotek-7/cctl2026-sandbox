@@ -17,13 +17,13 @@ TEST_CASE("USBは6整数だけを受け付ける") {
 }
 
 TEST_CASE("PC入力は初回受信から250ms以内だけ有効") {
-    CHECK_FALSE(outputsEnabled(false, 0, 0));
-    CHECK(outputsEnabled(true, 100, 100));
-    CHECK(outputsEnabled(true, 100, 350));
-    CHECK_FALSE(outputsEnabled(true, 100, 351));
-    CHECK(outputsEnabled(true, 400, 400));
-    CHECK(outputsEnabled(true, 0xfffffff0u, 20));
-    CHECK_FALSE(outputsEnabled(true, 0xfffffff0u, 300));
+    CHECK_FALSE(inputFresh(false, 0, 0));
+    CHECK(inputFresh(true, 100, 100));
+    CHECK(inputFresh(true, 100, 350));
+    CHECK_FALSE(inputFresh(true, 100, 351));
+    CHECK(inputFresh(true, 400, 400));
+    CHECK(inputFresh(true, 0xfffffff0u, 20));
+    CHECK_FALSE(inputFresh(true, 0xfffffff0u, 300));
 }
 
 TEST_CASE("原点未登録では全軸が座標範囲外でも両方向へ動ける") {
@@ -115,9 +115,9 @@ TEST_CASE("PC入力途絶と復帰で原点を取り直さない") {
     AxisMotion axis;
     referenceAxis(axis, 0, 12, true);
     const float offset = axis.offset;
-    CHECK_FALSE(outputsEnabled(true, 1, 300));
+    CHECK_FALSE(inputFresh(true, 1, 300));
     axis.speed = 0;
-    CHECK(outputsEnabled(true, 301, 301));
+    CHECK(inputFresh(true, 301, 301));
     referenceAxis(axis, 0, 13, true);
     CHECK(axis.referenced);
     CHECK(axis.offset == offset);
@@ -151,4 +151,16 @@ TEST_CASE("速度0では実測位置がずれても元の位置へ戻す指令�
             CHECK(axis.speed == 0);
         }
     }
+}
+
+TEST_CASE("PC入力途絶では6操作を中立にし再受信した入力を使う") {
+    int values[6]{1000, -1000, 1000, -1000, 1, 2};
+    expireInput(inputFresh(true, 100, 350), values);
+    CHECK(values[0] == 1000);
+    expireInput(inputFresh(true, 100, 351), values);
+    for (int value : values)
+        CHECK(value == 0);
+    CHECK(parseInput("-1000 0 0 0 0 0", values));
+    expireInput(inputFresh(true, 400, 400), values);
+    CHECK(values[0] == -1000);
 }
