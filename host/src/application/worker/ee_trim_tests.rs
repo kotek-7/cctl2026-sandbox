@@ -2,6 +2,17 @@ use super::*;
 
 fn running() -> (Runtime, Instant) {
     let mut r = super::tests::rotation_runtime(1500);
+    // この試験は正方向を基準にする。実機プロファイルの取付方向に依存させない。
+    r.cfg
+        .machine
+        .serial_svmd
+        .as_mut()
+        .unwrap()
+        .servos
+        .iter_mut()
+        .find(|s| s.name == "ee_rotation")
+        .unwrap()
+        .input_sign = 1.0;
     r.screen_control = false;
     r.guide.enabled = false;
     r.drive = DriveState::Running;
