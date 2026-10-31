@@ -1,5 +1,8 @@
-# 基板の非実機テスト
+# 非実機テスト
 
-プロジェクトルートで `./operate test` を実行する。
-CCTL・SerialSVMD・SVMDのロジックと、モータ/STS通信ドライバを検証する。
-HALの代替を使い、実機へアクセスしない。
+ルートで `make test` を実行する。
+
+- `python/test_operate.py`: 実行コードoperate.pyを直接検証。パッド入力、原点、運転/停止、制限、終了処理、pyserialの仮想端末通信。
+- CMake/CTest: CCTL・SerialSVMD・SVMDのロジックとモータ/STS通信ドライバ。HALの代替を使用。
+
+実機にはアクセスしない。

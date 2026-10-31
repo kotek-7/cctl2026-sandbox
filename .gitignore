@@ -5,3 +5,7 @@
 # Separate existing music project and editor settings
 /led-music/
 /.vscode/
+
+/.venv/
+__pycache__/
+/.ruff_cache/
