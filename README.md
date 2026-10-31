@@ -69,3 +69,14 @@ make format-check
 対象はRust本体と、各基板の `src/`・`tests/` のGit管理された自作C/C++コード。
 新しいC/C++ファイルは `git add` 後に実行する。
 生成コード、外部ライブラリ、`led-music/` は対象外。CIでも `make format-check` を実行する。
+
+VSCodeのSTM32Cube clangd拡張はフォーマット機能が既定でOFFのため、
+`stm32cube-ide-clangd.enableFormatting: true` と、C/C++の
+`editor.defaultFormatter: "STMicroelectronics.stm32cube-ide-clangd"` を指定する。
+`cctl/` と `serial_svmd/` のVSCode設定には指定済み。
+リポジトリ全体を開く場合はルートの `.vscode/settings.json` に同じ設定を置く
+（ルートのエディタ設定は個人設定としてGit管理対象外）。
+設定後に「Developer: Reload Window」を実行し、C/C++ファイルで
+「Format Document」（LinuxではShift+Alt+F）を使う。
+整形ルールは共通の `.clang-format` を読む。拡張内のclangdとCLIのclang-formatは
+バージョンが異なる場合があるため、コミット前は `make format-check` で確認する。

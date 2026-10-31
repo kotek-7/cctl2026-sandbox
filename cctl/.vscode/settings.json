@@ -14,5 +14,12 @@
     ],
     "clangd.arguments": [
         "--query-driver=/opt/st/stm32cubeclt_*/GNU-tools-for-STM32/bin/arm-none-eabi-*,/usr/bin/arm-none-eabi-*"
-    ]
+    ],
+    "stm32cube-ide-clangd.enableFormatting": true,
+    "[c]": {
+        "editor.defaultFormatter": "STMicroelectronics.stm32cube-ide-clangd"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "STMicroelectronics.stm32cube-ide-clangd"
+    }
 }
