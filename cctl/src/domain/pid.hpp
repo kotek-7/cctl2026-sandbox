@@ -6,22 +6,22 @@ namespace domain {
 // 出力が飽和し、誤差がさらに飽和を強める方向なら、積分値をリセットする。
 class Pid {
   public:
-    // 比例・積分・微分のゲインと出力上限を保存する。
+    // 位置制御または速度制御の応答の強さと、許容する回転数・電流の上限を決める。
     Pid(float kp, float ki, float kd, float out_limit)
         : kp_(kp), ki_(ki), kd_(kd), out_limit_(out_limit) {}
 
-    // 比例・積分・微分のゲインを変更する。蓄積済みの積分値は残す。
+    // 制御の応答の強さを調整する。これまでに蓄積した積分値は引き継ぐ。
     void setGains(float kp, float ki, float kd) {
         kp_ = kp;
         ki_ = ki;
         kd_ = kd;
     }
 
-    // 出力の絶対値に適用する上限を変更する。
+    // 制御計算が要求できる回転数または電流の最大値を変える。
     void setOutLimit(float out_limit) {
         out_limit_ = out_limit;
     }
-    // 現在設定されている出力の絶対値の上限を返す。
+    // 出力制限の確認に使う設定値。正負のどちらの出力にも、この絶対値を上限として使う。
     float outLimit() const {
         return out_limit_;
     }

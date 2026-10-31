@@ -8,7 +8,7 @@ use std::{
 
 const SEND_INTERVAL: Duration = Duration::from_millis(20);
 
-// DualSenseとシリアルポートを開き、入力を20msごとにCCTLへ送る。
+// PC側の操縦プログラム。パッド入力を20msごとに送り、機体の制御はCCTLに任せる。
 fn main() -> Result<(), Box<dyn Error>> {
     let device = std::env::args()
         .nth(1)

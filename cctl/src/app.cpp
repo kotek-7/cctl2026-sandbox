@@ -12,7 +12,7 @@ int input[6]{};
 uint32_t last_input = 0;
 bool input_received = false;
 
-// 受信した最新の1行を検査し、正常なら操作入力と受信時刻を更新する。
+// USB受信データを操縦に使う入力として受け入れる。不正な行では通信の有効期限も延ばさない。
 void readInput() {
     char line[80];
     // USB割込みとの競合を防ぐ。割込み禁止区間はコピー中だけ。
@@ -35,7 +35,7 @@ void readInput() {
 }
 } // namespace
 
-// USB受信は行の途中で分割される。改行まで組み立て、最新の完全な1行を渡す。
+// USB割込みから制御ループへ指令を渡す。分割して届くデータを、改行までそろえて引き渡す。
 // 長すぎる行は、末尾を別の指令と誤認しないよう改行まで捨てる。
 extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
     static char line[80];
@@ -57,12 +57,12 @@ extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
             overflow = true;
     }
 }
-// モータとサーボ基板につながるCAN通信を開始する。
+// CCTLの起動処理。軸モータとEEを、制御ループから指令できる状態にする。
 extern "C" void setup() {
     motorsBegin();
     eeBegin();
 }
-// 入力とモータ応答から出力の可否を判定し、軸とサーボへの指令を更新する。
+// CCTLの制御ループ。原点登録、出力の許可、軸とEEの周期更新をここでまとめる。
 extern "C" void loop() {
     motorsReceive();
     readInput();

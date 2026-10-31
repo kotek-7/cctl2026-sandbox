@@ -1,6 +1,6 @@
 use gilrs::{Axis, Button, Gamepad};
 
-// パッド入力をr・θ・z・EE回転・畳み・把持の6整数に変換して返す。
+// ボタンとスティックを機体の操作に割り当てる。戻り値はCCTLへ送る6項目の指令。
 pub fn read(pad: &Gamepad) -> [i32; 6] {
     let pressed = |button| pad.is_pressed(button);
     let trigger = |button| pad.button_data(button).map_or(0.0, |data| data.value());

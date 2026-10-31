@@ -7,21 +7,21 @@
 class M3508Motor {
   public:
     M3508Motor(uint8_t esc_id, float max_rpm);
-    // このモータの返信を受信するCAN IDを返す。
+    // CANの返信がθとzのどちらのものかを振り分けるためのID。
     uint16_t feedbackId() const {
         return 0x200 + esc_id_;
     }
     void onFeedback(const uint8_t data[8]);
-    // モータの目標角度を度単位で保存する。
+    // 手動移動で決めた目標を、このモータの位置制御へ渡す。単位は度。
     void setTargetMotorDeg(float value) {
         target_ = value;
     }
     void setEnabled(bool enabled);
-    // 最初に受信した角度からの回転角を度で返す。
+    // 軸の移動計算に使う実測角度。最初に受信した位置を基準とする度単位の値。
     float motorDeg() const {
         return angle_.degrees();
     }
-    // 最後に受信したモータ温度を℃で返す。
+    // 出力を許可する前の過熱判定に使う、最後の受信温度（℃）。
     uint8_t temperature() const {
         return feedback_.temperature;
     }

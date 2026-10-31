@@ -4,13 +4,13 @@
 
 namespace domain {
 
-// 蓄積した積分値と前回の誤差を0に戻す。
+// 出力の切替前に蓄積した誤差を捨て、再開後の制御へ持ち越さない。
 void Pid::reset() {
     integral_ = 0.0f;
     prev_error_ = 0.0f;
 }
 
-// 目標値と実測値の差から比例・積分・微分の合計を求め、出力上限で制限して返す。
+// θ・zの角度と回転数を目標に近づけるための制御計算。回転数または電流の上限内で出力する。
 float Pid::update(float target, float measured, float dt_s) {
     const float error = target - measured;
     const float proportional = kp_ * error;

@@ -6,56 +6,56 @@ namespace codec = domain::el05;
 constexpr float POSITION_SPAN = codec::POSITION_MAX - codec::POSITION_MIN;
 } // namespace
 
-// 通信種別と送受信先IDを組み立て、8バイトの指令をCANの送信待ちに登録する。
+// このEL05への指令に送受信先IDを付ける。各操作はこの関数を通してCANへ送る。
 bool El05Motor::sendFrame(uint8_t comm_type, const uint8_t data[8]) {
     return bus_.sendExt(codec::buildCanId(comm_type, host_id_, motor_id_), data, 8);
 }
 
-// モータの出力を有効にする指令を送る。
+// CCTLが操作を許可したときに、rのモータの位置制御を有効にする。
 bool El05Motor::enable() {
     const uint8_t data[8] = {};
     return sendFrame(codec::comm::ENABLE, data);
 }
 
-// 出力停止を指令する。clear_faultがtrueなら異常状態の解除も要求する。
+// rのモータの出力を止める。clear_faultがtrueなら、モータが保持する異常状態も解除する。
 bool El05Motor::disable(bool clear_fault) {
     uint8_t data[8] = {};
     data[0] = clear_fault ? 1 : 0;
     return sendFrame(codec::comm::DISABLE, data);
 }
 
-// 指定した制御モードをモータに書き込む。
+// EL05の制御方式を選ぶ。この機体では起動時に位置制御モードを指定する。
 bool El05Motor::setRunMode(RunMode mode) {
     return writeParamU8(codec::param::RUN_MODE, static_cast<uint8_t>(mode));
 }
 
-// ラジアン単位の目標角度をモータに送る。
+// CCTLで計算したrの目標を、EL05内部の位置制御へ渡す。角度の単位はラジアン。
 bool El05Motor::setLocRef(float pos_rad) {
     return writeParamFloat(codec::param::LOC_REF, pos_rad);
 }
 
-// 指定したパラメータへ浮動小数点の値を書き込む指令を送る。
+// EL05の速度・電流上限や位置目標など、実数で指定する設定を書き込む。
 bool El05Motor::writeParamFloat(uint16_t param, float value) {
     uint8_t data[8] = {};
     codec::encodeParamFloat(param, value, data);
     return sendFrame(codec::comm::WRITE_PARAM, data);
 }
 
-// 指定したパラメータへ1バイトの整数を書き込む指令を送る。
+// EL05の制御モードなど、1バイトで指定する設定を書き込む。
 bool El05Motor::writeParamU8(uint16_t param, uint8_t value) {
     uint8_t data[8] = {};
     codec::encodeParamU8(param, value, data);
     return sendFrame(codec::comm::WRITE_PARAM, data);
 }
 
-// 指定したパラメータの値を返信するようモータに要求する。
+// 通常の位置返信とは別に、EL05の設定値を問い合わせる。rの位置確認ではMECH_POSを読む。
 bool El05Motor::requestParam(uint16_t param) {
     uint8_t data[8] = {};
     codec::encodeParamRequest(param, data);
     return sendFrame(codec::comm::READ_PARAM, data);
 }
 
-// 返信から角度や異常状態を更新する。対象モータの通常の位置返信ならtrueを返す。
+// rの原点登録と位置制御に使う角度を、EL05の返信から求める。通常の位置返信だけtrueを返す。
 bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
     switch (codec::commType(ext_id)) {
     case codec::comm::FEEDBACK: {

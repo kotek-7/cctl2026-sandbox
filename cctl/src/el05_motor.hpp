@@ -7,7 +7,7 @@
 class El05Motor {
   public:
     using RunMode = domain::el05::RunMode;
-    // 使用するCANと、モータ・CCTLのIDを保存する。
+    // rのモータとの通信先を決める。実際の起動設定はmotorsBeginが行う。
     El05Motor(CanBus &bus, uint8_t motor_id, uint8_t host_id)
         : bus_(bus), motor_id_(motor_id), host_id_(host_id) {}
     bool enable();
@@ -17,15 +17,15 @@ class El05Motor {
     bool writeParamFloat(uint16_t param, float value);
     bool requestParam(uint16_t param);
     bool onFeedback(uint32_t id, const uint8_t data[8]);
-    // 折返しを補正したモータ角度をラジアンで返す。
+    // rの原点登録と移動計算に使う実測角度（ラジアン）。
     float position() const {
         return position_rad_;
     }
-    // MECH_POSの読出し返信で角度を取得済みならtrueを返す。
+    // rの角度を原点登録や出力判定に使えるかを示す。MECH_POSの取得後にtrueになる。
     bool positionReady() const {
         return position_ready_;
     }
-    // 最後に受信したモータの異常ビットを返す。
+    // rの出力を許可する前に確認する、モータ自身が報告した異常。
     uint8_t faultBits() const {
         return feedback_.fault_bits;
     }

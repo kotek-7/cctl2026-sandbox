@@ -1,12 +1,12 @@
 #include "can_bus.hpp"
 
-// 受信フィルタを設定してCAN通信を開始する。失敗したらfalseを返す。
+// モータ用・サーボ基板用のCANを使える状態にする。どの受信IDを使うかは呼出し側が判断する。
 bool CanBus::begin() {
     return HAL_FDCAN_ConfigGlobalFilter(handle_, FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_ACCEPT_IN_RX_FIFO0,
                                         FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) == HAL_OK &&
            HAL_FDCAN_Start(handle_) == HAL_OK;
 }
-// 送信領域の空きを最大2ms待ち、指令を登録する。時間切れや登録失敗ならfalseを返す。
+// CAN送信で制御ループが待ち続けないよう、空き待ちを2msで打ち切る。登録できなければfalse。
 bool CanBus::send(uint32_t id, uint32_t type, const uint8_t *data, uint8_t length) {
     FDCAN_TxHeaderTypeDef header{};
     header.Identifier = id;
@@ -23,15 +23,15 @@ bool CanBus::send(uint32_t id, uint32_t type, const uint8_t *data, uint8_t lengt
             return false;
     return HAL_FDCAN_AddMessageToTxFifoQ(handle_, &header, data) == HAL_OK;
 }
-// 標準IDでCAN指令を送信待ちに登録する。登録できなければfalseを返す。
+// C620の電流指令とサーボ基板への指令に使う送信口。trueは送信待ちへの登録成功を表す。
 bool CanBus::sendStd(uint16_t id, const uint8_t *data, uint8_t length) {
     return send(id, FDCAN_STANDARD_ID, data, length);
 }
-// 拡張IDでCAN指令を送信待ちに登録する。登録できなければfalseを返す。
+// EL05への指令に使う送信口。trueは送信待ちへの登録成功を表す。
 bool CanBus::sendExt(uint32_t id, const uint8_t *data, uint8_t length) {
     return send(id, FDCAN_EXTENDED_ID, data, length);
 }
-// CANを1件読み取ってframeに格納する。未受信または読取り失敗ならfalseを返す。
+// 受信したCANデータをモータごとの処理へ渡す。1件取り出せたときだけtrueを返す。
 bool CanBus::receive(domain::CanFrame &frame) {
     if (!HAL_FDCAN_GetRxFifoFillLevel(handle_, FDCAN_RX_FIFO0))
         return false;

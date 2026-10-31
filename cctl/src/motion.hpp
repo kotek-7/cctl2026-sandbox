@@ -13,7 +13,7 @@ struct AxisMotion {
     float speed = 0;
 };
 
-// 最初の接点検出時にr・zの原点を登録する。目標を現在位置に合わせ、速度を0にする。
+// モータの角度と機体の位置を、最初の接点で対応付ける。以後はこの対応でr・zの可動範囲を決める。
 // indexは r=0 / θ=1 / z=2。measuredはモータから読んだ角度。
 inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool contact) {
     if (index == 1 || axis.referenced || !contact)
@@ -24,7 +24,7 @@ inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool
     axis.referenced = true;
 }
 
-// 入力と経過時間から1軸の速度・位置目標を更新し、接点と可動範囲で制限する。
+// 1軸の手動移動を計算する。操作入力を位置目標に変え、加減速・接点・可動範囲で動きを制限する。
 // inputは±1000、dtは秒。
 inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input, float dt,
                      bool contact) {

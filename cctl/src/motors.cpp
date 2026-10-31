@@ -17,7 +17,7 @@ AxisMotion axes[3];
 uint32_t last_feedback[3]{};
 bool feedback_received[3]{};
 bool enabled = false;
-// 指定した軸のモータ角度を返す。r=0はラジアン、θ=1とz=2は度。
+// 軸の計算に使う実測角度を、各モータから取り出す。r=0はラジアン、θ=1とz=2は度。
 float measured(unsigned i) {
     switch (i) {
     case 0:
@@ -30,7 +30,7 @@ float measured(unsigned i) {
 }
 } // namespace
 
-// CAN通信を開始し、rのモータを停止した状態で位置制御モードと上限値を設定する。
+// 手動操作に入る前に、rのモータを位置制御用に設定する。設定中は出力を止めておく。
 void motorsBegin() {
     if (!bus.begin())
         Error_Handler();
@@ -47,7 +47,7 @@ void motorsBegin() {
     r.requestParam(domain::el05::param::MECH_POS);
 }
 
-// CANに届いた返信を読み、各モータの角度・状態と最終受信時刻を更新する。
+// 軸制御と出力判定が使うモータ情報をそろえる。返信の時刻は通信断の判定にも使う。
 void motorsReceive() {
     domain::CanFrame frame;
     while (bus.receive(frame)) {
@@ -77,7 +77,7 @@ void motorsReceive() {
     }
 }
 
-// 3軸の返信が200ms以内で、rの位置が有効・異常なし、θ・zが80℃未満ならtrue。
+// 3軸を動かせる状態かを判断する。返信の途絶、rの位置未取得・異常、θ・zの過熱を確認する。
 bool motorsReady() {
     const auto now = HAL_GetTick();
     for (unsigned i = 0; i < 3; ++i)
@@ -87,7 +87,7 @@ bool motorsReady() {
            z.temperature() < 80;
 }
 
-// 出力切替時の目標を実測に合わせる。原点は維持する。
+// 出力切替後に古い目標へ動かないよう、現在位置を新しい目標にする。登録済みの原点は残す。
 static void holdPosition() {
     for (unsigned i = 0; i < 3; ++i) {
         axes[i].target = measured(i);
@@ -99,7 +99,7 @@ static void holdPosition() {
         r.setLocRef(axes[0].target);
 }
 
-// 原点登録はrとzで別々に判定する。片方のモータが未接続でも、もう片方は登録できる。
+// 接点を機体の位置の基準として登録する。rとzは独立して判定し、他軸の返信を待たない。
 void motorsReference(bool r_contact, bool z_contact) {
     const auto now = HAL_GetTick();
     if (feedback_received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
@@ -111,7 +111,7 @@ void motorsReference(bool r_contact, bool z_contact) {
     z.setTargetMotorDeg(axes[2].target);
 }
 
-// 出力の有効・無効を切り替える。切替時は位置目標を現在位置に戻す。
+// 制御ループが決めた出力の可否を3軸のモータへ反映する。再開時は現在位置から操作する。
 void motorsEnable(bool requested_enabled) {
     if (enabled == requested_enabled)
         return;
@@ -126,7 +126,7 @@ void motorsEnable(bool requested_enabled) {
     enabled = requested_enabled;
 }
 
-// r・θ・zの入力から速度と位置目標を更新し、接点と可動範囲で制限する。
+// パッドの3軸入力を、モータが追いかける位置目標に変える。各軸の移動制限もここで適用する。
 void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
     const bool contacts[3] = {r_contact, false, z_contact};
     for (unsigned i = 0; i < 3; ++i)
@@ -135,7 +135,7 @@ void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
     z.setTargetMotorDeg(axes[2].target);
 }
 
-// θ・zの電流指令を1msごとに送る。rは20msごとに位置または停止を指令し、位置を読む。
+// 計算した目標をモータへ送る周期処理。θ・zには電流を、内部で位置制御するrには角度を指令する。
 void motorsUpdate(uint32_t now) {
     static uint32_t current_at = 0, position_at = 0;
     if (now - current_at >= 1) {

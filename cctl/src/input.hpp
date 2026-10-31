@@ -2,7 +2,7 @@
 #include "config.hpp"
 #include <cstdlib>
 
-// 改行を除いた1行を、r / θ / z / 回転 / 畳み / 把持の順に読む。
+// PCからの1行が操作指令として使えるかを検査する。項目はr・θ・z・回転・畳み・把持の順。
 // 途中で不正な値を見つけるとfalseを返す。その場合はvalues全体を使わない。
 inline bool parseInput(const char *text, int values[6]) {
     for (unsigned i = 0; i < 6; ++i) {
@@ -22,7 +22,7 @@ inline bool parseInput(const char *text, int values[6]) {
     return *text == '\0' && valid_fold && valid_grip;
 }
 
-// 入力を受信済みで、その入力が250ms以内かつモータが正常なら出力を許可する。
+// 起動直後や通信断で出力しないための判定。250ms以内の入力と正常なモータ応答が必要。
 // 起動後のミリ秒カウンタが上限を超えて0に戻る場合も、符号なしの引き算で扱う。
 inline bool outputsEnabled(bool input_received, uint32_t last_input, uint32_t now,
                            bool motors_ready) {

@@ -2,7 +2,7 @@
 
 namespace domain {
 
-// 起動後のミリ秒を受け取り、前回の呼出しからの経過秒を返す。初回は0を返す。
+// PIDが積分・微分に使う経過秒を求める。基準時刻のない初回は0を返す。
 float DeltaTimer::update(uint32_t now_ms) {
     if (!has_previous_) {
         previous_ms_ = now_ms;
@@ -15,7 +15,7 @@ float DeltaTimer::update(uint32_t now_ms) {
     return static_cast<float>(elapsed_ms) / 1000.0f;
 }
 
-// 前回時刻を消し、次の呼出しで経過秒が0になるようにする。
+// モータの停止時間を、再開後のPID計算に含めないよう時刻の基準を捨てる。
 void DeltaTimer::reset() {
     has_previous_ = false;
     previous_ms_ = 0;

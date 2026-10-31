@@ -2,17 +2,17 @@
 #include "config.hpp"
 #include "main.h"
 
-// モータIDと最高回転数を受け取り、角度・回転数を制御するPIDを設定する。
+// θまたはzの位置制御を用意する。指定した最高回転数を、その軸の速度上限に使う。
 M3508Motor::M3508Motor(uint8_t esc_id, float max_rpm)
     : esc_id_(esc_id), position_pid_(config::position_kp, 0, 0, max_rpm),
       velocity_pid_(config::velocity_kp, config::velocity_ki, config::velocity_kd,
                     config::max_current_ma) {}
-// 8バイトの返信を読み、角度・回転数・電流・温度を更新する。
+// 位置・速度の制御と過熱判定に使う実測値を、C620の返信から受け取る。
 void M3508Motor::onFeedback(const uint8_t data[8]) {
     feedback_ = domain::c620::decodeFeedback(data);
     angle_.update(feedback_.raw_angle);
 }
-// 出力の有効・無効を切り替え、切替時にPIDの積分値と経過時間をリセットする。
+// θ・zの制御を開始・停止する。再開時に停止前の積分値や停止中の時間を持ち込まない。
 void M3508Motor::setEnabled(bool enabled) {
     if (enabled_ == enabled)
         return;
@@ -22,7 +22,7 @@ void M3508Motor::setEnabled(bool enabled) {
     velocity_pid_.reset();
     timer_.reset();
 }
-// 目標角度に近づける電流を計算し、C620へ送る整数値を返す。停止中や角度未受信なら0。
+// CCTL側でθ・zの位置制御を行い、C620に指令する電流を決める。停止中や角度未受信なら0。
 int16_t M3508Motor::commandRaw() {
     if (!enabled_ || !angle_.hasReference())
         return 0;

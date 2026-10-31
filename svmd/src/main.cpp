@@ -7,18 +7,18 @@ constexpr uint16_t COMMAND_ID = 0x300;
 constexpr uint8_t PINS[4] = {3, 6, 10, 9};
 Servo servos[4];
 uint32_t last_command = 0;
-// 接続中の4本のサーボ出力をすべて切る。
+// CCTLとの通信断で、畳み・把持のサーボへ出すPWM信号を止める。
 void stop() {
     for (auto &servo : servos)
         if (servo.attached())
             servo.detach();
 }
 } // namespace
-// CAN通信を1Mbpsで開始する。
+// 畳み・把持を動かす基板の起動処理。CCTLからのPWM指令を受信できる状態にする。
 void setup() {
     CAN.begin(CanBitRate::BR_1000k);
 }
-// CANの4本分のPWM指令を反映し、正常な指令が250msを超えて途絶えたら出力を切る。
+// CCTLの畳み・把持の目標を4本のPWM信号へ反映する。通信断時の出力停止もこの基板が担う。
 void loop() {
     while (CAN.available()) {
         const auto msg = CAN.read();
