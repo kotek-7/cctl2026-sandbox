@@ -1,104 +1,37 @@
 #include "can_bus.hpp"
 
-namespace {
-uint32_t dlcFromLen(uint8_t len) {
-  switch (len) {
-    case 0: return FDCAN_DLC_BYTES_0;
-    case 1: return FDCAN_DLC_BYTES_1;
-    case 2: return FDCAN_DLC_BYTES_2;
-    case 3: return FDCAN_DLC_BYTES_3;
-    case 4: return FDCAN_DLC_BYTES_4;
-    case 5: return FDCAN_DLC_BYTES_5;
-    case 6: return FDCAN_DLC_BYTES_6;
-    case 7: return FDCAN_DLC_BYTES_7;
-    default: return FDCAN_DLC_BYTES_8;
-  }
-}
-}  // namespace
-
 bool CanBus::begin() {
-  if (HAL_FDCAN_ConfigGlobalFilter(hcan_, FDCAN_ACCEPT_IN_RX_FIFO0,
-                                   FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_REJECT_REMOTE,
-                                   FDCAN_REJECT_REMOTE) != HAL_OK) {
-    return false;
-  }
-  return HAL_FDCAN_Start(hcan_) == HAL_OK;
+    return HAL_FDCAN_ConfigGlobalFilter(handle_, FDCAN_ACCEPT_IN_RX_FIFO0,
+        FDCAN_ACCEPT_IN_RX_FIFO0, FDCAN_REJECT_REMOTE, FDCAN_REJECT_REMOTE) == HAL_OK
+        && HAL_FDCAN_Start(handle_) == HAL_OK;
 }
-
-bool CanBus::discardPending() {
-  const uint32_t pending = hcan_->Instance->TXBRP;
-  if (pending == 0) return true;
-  const uint32_t start = HAL_GetTick();
-  if (HAL_FDCAN_AbortTxRequest(hcan_, pending) != HAL_OK) {
-    ++tx_failures_;
-    return false;
-  }
-  while ((hcan_->Instance->TXBRP & pending) != 0) {
-    if (HAL_GetTick() - start >= 2) {
-      ++tx_failures_;
-      return false;
-    }
-  }
-  return true;
+bool CanBus::send(uint32_t id, uint32_t type, const uint8_t* data, uint8_t length) {
+    FDCAN_TxHeaderTypeDef header{};
+    header.Identifier = id;
+    header.IdType = type;
+    header.TxFrameType = FDCAN_DATA_FRAME;
+    header.DataLength = length; // STM32G4 HALのClassic CAN DLCはバイト数。
+    header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
+    header.BitRateSwitch = FDCAN_BRS_OFF;
+    header.FDFormat = FDCAN_CLASSIC_CAN;
+    header.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+    const auto start = HAL_GetTick();
+    while (!HAL_FDCAN_GetTxFifoFreeLevel(handle_))
+        if (HAL_GetTick() - start >= 2) return false;
+    return HAL_FDCAN_AddMessageToTxFifoQ(handle_, &header, data) == HAL_OK;
 }
-
-bool CanBus::send(uint32_t id, uint32_t id_type, const uint8_t* data, uint8_t len, bool track) {
-  FDCAN_TxHeaderTypeDef tx_header = {};
-  tx_header.Identifier = id;
-  tx_header.IdType = id_type;
-  tx_header.TxFrameType = FDCAN_DATA_FRAME;
-  tx_header.DataLength = dlcFromLen(len);
-  tx_header.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
-  tx_header.BitRateSwitch = FDCAN_BRS_OFF;
-  tx_header.FDFormat = FDCAN_CLASSIC_CAN;
-  tx_header.TxEventFifoControl = track ? FDCAN_STORE_TX_EVENTS : FDCAN_NO_TX_EVENTS;
-  tx_header.MessageMarker = 0;
-
-  // 同時に複数モータへ指令すると3要素のFIFOが埋まる。待機は最大2ms。
-  const uint32_t start = HAL_GetTick();
-  while (HAL_FDCAN_GetTxFifoFreeLevel(hcan_) == 0) {
-    if (HAL_GetTick() - start >= 2) {
-      ++tx_failures_;
-      return false;
-    }
-  }
-  if (HAL_FDCAN_AddMessageToTxFifoQ(hcan_, &tx_header, data) != HAL_OK) {
-    ++tx_failures_;
-    return false;
-  }
-  return true;
+bool CanBus::sendStd(uint16_t id, const uint8_t* data, uint8_t length) {
+    return send(id, FDCAN_STANDARD_ID, data, length);
 }
-
-bool CanBus::sendStd(uint16_t id, const uint8_t* data, uint8_t len, bool track) {
-  return send(id, FDCAN_STANDARD_ID, data, len, track);
+bool CanBus::sendExt(uint32_t id, const uint8_t* data, uint8_t length) {
+    return send(id, FDCAN_EXTENDED_ID, data, length);
 }
-
-bool CanBus::sendExt(uint32_t id, const uint8_t* data, uint8_t len, bool track) {
-  return send(id, FDCAN_EXTENDED_ID, data, len, track);
-}
-
-bool CanBus::receiveTxCompletion(uint32_t& id, bool& extended) {
-  if ((hcan_->Instance->TXEFS & FDCAN_TXEFS_EFFL) == 0) return false;
-  FDCAN_TxEventFifoTypeDef event{};
-  if (HAL_FDCAN_GetTxEvent(hcan_, &event) != HAL_OK) return false;
-  id = event.Identifier;
-  extended = event.IdType == FDCAN_EXTENDED_ID;
-  return true;
-}
-
 bool CanBus::receive(domain::CanFrame& frame) {
-  if (HAL_FDCAN_GetRxFifoFillLevel(hcan_, FDCAN_RX_FIFO0) == 0U) {
-    return false;
-  }
-
-  FDCAN_RxHeaderTypeDef header = {};
-  if (HAL_FDCAN_GetRxMessage(hcan_, FDCAN_RX_FIFO0, &header, frame.data) != HAL_OK) {
-    return false;
-  }
-
-  frame.id = header.Identifier;
-  frame.extended = header.IdType == FDCAN_EXTENDED_ID;
-  // Classic CAN の DataLength はバイト数そのもの。
-  frame.length = static_cast<uint8_t>(header.DataLength);
-  return true;
+    if (!HAL_FDCAN_GetRxFifoFillLevel(handle_, FDCAN_RX_FIFO0)) return false;
+    FDCAN_RxHeaderTypeDef header{};
+    if (HAL_FDCAN_GetRxMessage(handle_, FDCAN_RX_FIFO0, &header, frame.data) != HAL_OK) return false;
+    frame.id = header.Identifier;
+    frame.extended = header.IdType == FDCAN_EXTENDED_ID;
+    frame.length = header.DataLength;
+    return true;
 }

@@ -1,93 +1,30 @@
 #pragma once
-
 #include "can_bus.hpp"
 #include "domain/el05_codec.hpp"
 
-#include <cstdint>
-
-// r軸: RobStride EL05 ドライバ（拡張ID 29bit）。
-// フレームの組立・復号は domain::el05 が担う。減速比 9:1 内蔵。
-//
-// 位置・速度・電流の各モードを扱える。rθz では位置モードを使うが、
-// 単体確認では速度モードのほうが機構を壊しにくい。
+// EL05の位置モード。周期位置の折返しを、多回転位置へ連続化する。
 class El05Motor {
- public:
-  using RunMode = domain::el05::RunMode;
-
-  El05Motor(CanBus& bus, uint8_t motor_id, uint8_t host_id)
-      : bus_(bus), motor_id_(motor_id), host_id_(host_id) {}
-
-  // ---- 状態遷移 ---------------------------------------------------------
-  bool enable();
-  bool disable(bool clear_fault = true);
-  bool setZero();
-  bool setRunMode(RunMode mode);
-
-  // ---- モードごとの目標値 -----------------------------------------------
-  // CSP位置モード: 周期的に更新する目標位置[rad]（LOC_REF）。
-  bool setLocRef(float pos_rad);
-  // 速度モード: 目標速度[rad/s]（SPD_REF）。
-  bool setSpeedRef(float vel_rad_s);
-  // 電流モード: 目標電流[A]（IQ_REF, ±11A）。
-  bool setCurrentRef(float amp);
-
-  // ---- パラメータ -------------------------------------------------------
-  bool writeParamFloat(uint16_t param, float value);
-
-  void setIds(uint8_t motor_id, uint8_t host_id) {
-    motor_id_ = motor_id;
-    host_id_ = host_id;
-  }
-  bool writeParamU8(uint16_t param, uint8_t value);
-  // 読み出しを要求する。値は応答フレームとして後から届く。
-  bool requestParam(uint16_t param);
-  // パラメータ書込は電源断で消える。保存するとドライバへ書き込まれる。
-  bool saveParams();
-
-  // ---- 受信 -------------------------------------------------------------
-  // 拡張フレームを解析して内部状態を更新する。自分宛でなければ false。
-  bool onFeedback(uint32_t ext_id, const uint8_t data[8]);
-
-  // ---- 状態 -------------------------------------------------------------
-  // 周期フィードバックの位置は±12.57 radで折り返す。MECH_POSで絶対位置を
-  // 確立した後は、周期差分を連続化した多回転位置を返す。
-  float position() const { return position_rad_; }
-  bool positionReady() const { return position_ready_; }
-  void invalidatePosition() { position_ready_ = false; }
-  float velocity() const { return feedback_.velocity_rad_s; }
-  float torque() const { return feedback_.torque_nm; }
-  float temperature() const { return feedback_.temperature_c; }
-  uint8_t state() const { return feedback_.state; }
-  uint8_t faultBits() const { return feedback_.fault_bits; }
-
-  // 直近に届いたパラメータ応答。バス電圧などを実機から読むのに使う。
-  bool takeParamReply(uint16_t& index, uint32_t& raw) {
-    if (!has_param_reply_) return false;
-    has_param_reply_ = false;
-    index = last_param_index_;
-    raw = last_param_raw_;
-    return true;
-  }
-  bool hasParamReply() const { return has_param_reply_; }
-  uint16_t lastParamIndex() const { return last_param_index_; }
-  float lastParamFloat() const { return last_param_value_; }
-
- private:
-  bool sendFrame(uint8_t comm_type, const uint8_t data[8]);
-
-  CanBus& bus_;
-  uint8_t motor_id_;
-  uint8_t host_id_;
-
-  domain::el05::Feedback feedback_ = {};
-
-  bool has_param_reply_ = false;
-  uint16_t last_param_index_ = 0;
-  float last_param_value_ = 0.0f;
-  uint32_t last_param_raw_ = 0;
-
-  float position_rad_ = 0.0f;
-  uint16_t last_position_raw_ = 0;
-  bool has_wrapped_position_ = false;
-  bool position_ready_ = false;
+public:
+    using RunMode = domain::el05::RunMode;
+    El05Motor(CanBus& bus, uint8_t motor_id, uint8_t host_id)
+        : bus_(bus), motor_id_(motor_id), host_id_(host_id) {}
+    bool enable();
+    bool disable(bool clear_fault = true);
+    bool setRunMode(RunMode mode);
+    bool setLocRef(float position);
+    bool writeParamFloat(uint16_t param, float value);
+    bool requestParam(uint16_t param);
+    bool onFeedback(uint32_t id, const uint8_t data[8]);
+    float position() const { return position_rad_; }
+    bool positionReady() const { return position_ready_; }
+    uint8_t faultBits() const { return feedback_.fault_bits; }
+private:
+    bool sendFrame(uint8_t type, const uint8_t data[8]);
+    bool writeParamU8(uint16_t param, uint8_t value);
+    CanBus& bus_;
+    uint8_t motor_id_, host_id_;
+    domain::el05::Feedback feedback_{};
+    float position_rad_ = 0;
+    uint16_t last_position_raw_ = 0;
+    bool has_wrapped_position_ = false, position_ready_ = false;
 };

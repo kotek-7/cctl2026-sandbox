@@ -1,6 +1,5 @@
 #include "el05_motor.hpp"
 #include <cmath>
-#include <cstring>
 
 namespace {
 namespace codec = domain::el05;
@@ -22,31 +21,12 @@ bool El05Motor::disable(bool clear_fault) {
   return sendFrame(codec::comm::DISABLE, data);
 }
 
-bool El05Motor::setZero() {
-  uint8_t data[8] = {};
-  data[0] = 1;
-  const bool sent = sendFrame(codec::comm::SET_ZERO, data);
-  if (sent) {
-    position_ready_ = false;
-    has_wrapped_position_ = false;
-  }
-  return sent;
-}
-
 bool El05Motor::setRunMode(RunMode mode) {
   return writeParamU8(codec::param::RUN_MODE, static_cast<uint8_t>(mode));
 }
 
 bool El05Motor::setLocRef(float pos_rad) {
   return writeParamFloat(codec::param::LOC_REF, pos_rad);
-}
-
-bool El05Motor::setSpeedRef(float vel_rad_s) {
-  return writeParamFloat(codec::param::SPD_REF, vel_rad_s);
-}
-
-bool El05Motor::setCurrentRef(float amp) {
-  return writeParamFloat(codec::param::IQ_REF, amp);
 }
 
 bool El05Motor::writeParamFloat(uint16_t param, float value) {
@@ -65,12 +45,6 @@ bool El05Motor::requestParam(uint16_t param) {
   uint8_t data[8] = {};
   codec::encodeParamRequest(param, data);
   return sendFrame(codec::comm::READ_PARAM, data);
-}
-
-bool El05Motor::saveParams() {
-  uint8_t data[8] = {};
-  codec::encodeSave(data);
-  return sendFrame(codec::comm::SAVE_PARAM, data);
 }
 
 bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
@@ -108,17 +82,15 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
       if (codec::targetId(ext_id) != host_id_ ||
           static_cast<uint8_t>(codec::dataArea2(ext_id)) != motor_id_ ||
           ((ext_id >> 16) & 0xFF) != 0) return false;
-      has_param_reply_ = true;
-      last_param_index_ = codec::paramReplyIndex(data);
-      last_param_value_ = codec::paramReplyFloat(data);
-      std::memcpy(&last_param_raw_, &data[4], sizeof(last_param_raw_));
-      if (last_param_index_ == codec::param::MECH_POS && std::isfinite(last_param_value_)) {
+      const auto index = codec::paramReplyIndex(data);
+      const float value = codec::paramReplyFloat(data);
+      if (index == codec::param::MECH_POS && std::isfinite(value)) {
         if (has_wrapped_position_) {
           // 非同期のMECH_POS値で小さく飛ばさず、周回数だけを補正する。
           position_rad_ +=
-              std::round((last_param_value_ - position_rad_) / POSITION_SPAN) * POSITION_SPAN;
+              std::round((value - position_rad_) / POSITION_SPAN) * POSITION_SPAN;
         } else {
-          position_rad_ = last_param_value_;
+          position_rad_ = value;
         }
         position_ready_ = true;
         feedback_.position_rad = position_rad_;

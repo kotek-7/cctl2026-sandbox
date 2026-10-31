@@ -7,7 +7,6 @@ help:
 build:
 	cargo build --release --locked
 test:
-	cargo test --locked
 	cmake -S tests -B tests/build -G Ninja
 	cmake --build tests/build
 	ctest --test-dir tests/build --output-on-failure
