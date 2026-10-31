@@ -15,6 +15,7 @@ bool input_received = false;
 
 void readInput() {
     char line[80];
+    // コピー中にUSB割込みが行を書き換えないよう、受け渡し部分だけ割込みを止める。
     __disable_irq();
     const bool ready = line_ready;
     if (ready) {
@@ -25,6 +26,7 @@ void readInput() {
     __enable_irq();
     if (!ready)
         return;
+    // 全項目が正常な行だけを採用する。不正な行では通信の有効期限も延長しない。
     int values[6];
     if (!parseInput(line, values))
         return;
@@ -34,6 +36,8 @@ void readInput() {
 }
 } // namespace
 
+// USB受信は行の途中で分割される。改行まで組み立て、最新の完全な1行を渡す。
+// 長すぎる行は改行まで捨て、途中の文字列を別の指令として解釈しない。
 extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
     static char line[80];
     static unsigned used = 0;
@@ -64,11 +68,14 @@ extern "C" void loop() {
     const uint32_t now = HAL_GetTick();
     const bool r_contact = HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET;
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
+    // 接点はLowでON。原点はPC入力の有無にかかわらず、軸の位置が有効なら登録する。
     motorsReference(r_contact, z_contact);
+    // 出力条件は毎ループ評価する。条件回復時も登録済みの原点はそのまま使う。
     const bool enabled = outputsEnabled(input_received, last_input, now, motorsReady());
     motorsEnable(enabled);
     static uint32_t motion_at = 0;
     if (now - motion_at >= 20) {
+        // ループが遅れても、1回の更新で20ms分を超える移動目標を積まない。
         const float dt = std::min((now - motion_at) / 1000.0f, 0.02f);
         motion_at = now;
         if (enabled)

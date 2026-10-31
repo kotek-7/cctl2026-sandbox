@@ -21,6 +21,8 @@ void loop() {
         const auto msg = CAN.read();
         if (msg.isExtendedId() || msg.id != COMMAND_ID || msg.data_length != 8)
             continue;
+        // 4本すべてを検証してから反映し、不正なフレームの一部だけを動かさない。
+        // 各幅は上位byteが先のµs値。0は解除、それ以外は400〜1500。
         uint16_t pulse[4];
         bool valid = true;
         for (unsigned i = 0; i < 4; ++i) {
@@ -42,6 +44,7 @@ void loop() {
             }
         }
     }
+    // 指令途絶時はPWM信号を切る。サーボの位置保持は行わない。
     if (millis() - last_command > 250)
         stop();
 }

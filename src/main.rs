@@ -29,6 +29,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("接続後は常時操作 / L1: 低速 / Ctrl+C: 終了");
     loop {
         let started = Instant::now();
+        // gilrs内部の入力状態を最新にしてから、全軸をまとめて読む。
         while pads.next_event().is_some() {}
         let gamepad = pads.gamepad(id);
         if !gamepad.is_connected() {
@@ -36,6 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let [r, theta, z, rotate, fold, grip] = pad::read(&gamepad);
         writeln!(port, "{r} {theta} {z} {rotate} {fold} {grip}")?;
+        // 入力取得と送信に使った時間を差し引き、約20ms周期にする。
         std::thread::sleep(Duration::from_millis(20).saturating_sub(started.elapsed()));
     }
 }

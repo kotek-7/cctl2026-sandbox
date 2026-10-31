@@ -14,6 +14,7 @@ void M3508Motor::setEnabled(bool enabled) {
     if (enabled_ == enabled)
         return;
     enabled_ = enabled;
+    // 再有効化時に、停止前の積分値や停止期間を制御計算へ持ち込まない。
     position_pid_.reset();
     velocity_pid_.reset();
     timer_.reset();
@@ -22,6 +23,7 @@ int16_t M3508Motor::commandRaw() {
     if (!enabled_ || !angle_.hasReference())
         return 0;
     const float dt = timer_.update(HAL_GetTick());
+    // 二段の制御: モータ角度の誤差 → 回転数目標 → 電流[mA] → C620指令値。
     const float rpm = position_pid_.update(target_, angle_.degrees(), dt);
     const float current = velocity_pid_.update(rpm, feedback_.rpm, dt);
     return domain::c620::currentToRaw(static_cast<int32_t>(current));

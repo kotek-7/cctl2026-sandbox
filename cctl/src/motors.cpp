@@ -8,6 +8,7 @@
 
 extern "C" FDCAN_HandleTypeDef hfdcan1;
 namespace {
+// rはEL05内部で位置制御し、θ・zはCCTLで電流指令を計算する。
 CanBus bus(&hfdcan1);
 El05Motor r(bus, config::el05_id, config::host_id);
 M3508Motor theta(config::theta_id, config::max_rpm[0]);
@@ -30,6 +31,7 @@ float measured(unsigned i) {
 void motorsBegin() {
     if (!bus.begin())
         Error_Handler();
+    // 出力停止中にCSP位置モードと上限値を設定し、絶対位置の返信を要求する。
     r.disable();
     HAL_Delay(50);
     r.setRunMode(El05Motor::RunMode::PositionCsp);
@@ -81,6 +83,7 @@ bool motorsReady() {
            z.temperature() < 80;
 }
 
+// 出力の切替時に古い移動目標を捨てる。原点のoffset・referencedは保持する。
 static void holdPosition() {
     for (unsigned i = 0; i < 3; ++i) {
         axes[i].target = measured(i);
@@ -92,6 +95,7 @@ static void holdPosition() {
         r.setLocRef(axes[0].target);
 }
 
+// 各軸の返信鮮度を個別に確認する。他軸が未接続でも原点を登録できる。
 void motorsReference(bool r_contact, bool z_contact) {
     const auto now = HAL_GetTick();
     if (received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
@@ -127,6 +131,7 @@ void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
 
 void motorsUpdate(uint32_t now) {
     static uint32_t current_at = 0, position_at = 0;
+    // C620はID 0x200の各スロットへ電流を送る。出力無効時の電流は0。
     if (now - current_at >= 1) {
         uint8_t data[8]{};
         domain::c620::writeCommandSlot(data, config::theta_id, theta.commandRaw());
@@ -134,6 +139,7 @@ void motorsUpdate(uint32_t now) {
         bus.sendStd(0x200, data, 8);
         current_at = now;
     }
+    // EL05は位置目標を送り、MECH_POSの定期読出しで周回数と返信鮮度を更新する。
     if (now - position_at >= 20) {
         if (enabled)
             r.setLocRef(axes[0].target);

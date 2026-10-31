@@ -28,6 +28,7 @@ extern "C" void loop() {
         if (header.IDE != CAN_ID_STD || header.RTR != CAN_RTR_DATA || header.StdId != COMMAND_ID ||
             header.DLC != 3 || data[0] > 1)
             continue;
+        // CAN位置は上位byteが先の2の補数。負数を明示的に復号する。
         const int raw = (data[1] << 8) | data[2];
         const int position = raw >= 32768 ? raw - 65536 : raw;
         if (position < -28672 || position > 28672)
@@ -38,6 +39,7 @@ extern "C" void loop() {
             servoTarget(static_cast<int16_t>(position));
         servoEnable(data[0]);
     }
+    // 正常な指令だけが受信期限を延長する。途絶時はトルクを解除する。
     if (HAL_GetTick() - last_command > 250) {
         servoEnable(false);
         HAL_Delay(1);

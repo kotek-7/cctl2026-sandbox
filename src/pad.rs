@@ -4,11 +4,13 @@ use gilrs::{Axis, Button, Gamepad};
 pub fn read(pad: &Gamepad) -> [i32; 6] {
     let pressed = |button| pad.is_pressed(button);
     let trigger = |button| pad.button_data(button).map_or(0.0, |data| data.value());
+    // gilrsのLeftTriggerはL1。アナログのL2/R2はLeftTrigger2/RightTrigger2。
     let scale = if pressed(Button::LeftTrigger) {
         0.3
     } else {
         1.0
     };
+    // 中立付近の揺れを除き、CCTLが受け取る±1000の整数へ変換する。
     let scaled_input = |value: f32| {
         if value.abs() < 0.1 {
             0
