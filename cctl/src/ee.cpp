@@ -6,19 +6,13 @@
 extern "C" FDCAN_HandleTypeDef hfdcan2;
 namespace {
 CanBus bus(&hfdcan2);
-float fold_pulse = 500, grip_pulse = 500, field_angle = 0;
-bool was_enabled = false;
+float fold_pulse = 500, grip_pulse = 500, rotation_angle = 0;
 } // namespace
 void eeBegin() {
     if (!bus.begin())
         Error_Handler();
 }
-void eeUpdate(bool enabled, int rotate, int fold, int grip, float theta, float dt) {
-    // 原点登録時は前回の回転目標を保ち、θ補償を新しい座標に合わせる。
-    static float rotation_angle = 0;
-    if (enabled && !was_enabled)
-        field_angle = theta + rotation_angle;
-    was_enabled = enabled;
+void eeUpdate(bool enabled, int rotate, int fold, int grip, float dt) {
     if (enabled) {
         fold_pulse = std::clamp(fold_pulse + fold * config::fold_speed * dt, config::fold_min,
                                 config::fold_max);
@@ -26,13 +20,10 @@ void eeUpdate(bool enabled, int rotate, int fold, int grip, float theta, float d
             grip_pulse = config::grip_open;
         if (grip == 2)
             grip_pulse = config::grip_closed;
-        if (grip == 3)
-            grip_pulse = config::grip_handoff;
-        field_angle += rotate * config::rotation_speed * dt / 1000.0f;
-        rotation_angle = std::clamp(field_angle - theta,
-                                    (-28672 - config::rotation_zero) / config::counts_per_degree,
-                                    (28672 - config::rotation_zero) / config::counts_per_degree);
-        field_angle = theta + rotation_angle;
+        rotation_angle += rotate * config::rotation_speed * dt / 1000.0f;
+        rotation_angle =
+            std::clamp(rotation_angle, (-28672 - config::rotation_zero) / config::counts_per_degree,
+                       (28672 - config::rotation_zero) / config::counts_per_degree);
     }
     uint8_t pwm[8]{};
     for (unsigned i = 0; i < 4; ++i) {

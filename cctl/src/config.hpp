@@ -5,8 +5,9 @@
 namespace config {
 constexpr float native_per_unit[3] = {-0.04f, 132.02206f, -96.016f};
 constexpr float origin[3] = {570, 0, 0};
-constexpr float minimum[3] = {0, -180, 0};
-constexpr float maximum[3] = {570, 180, 315};
+// θ（index 1）は原点登録も座標制限も行わない。
+constexpr float minimum[3] = {0, 0, 0};
+constexpr float maximum[3] = {570, 0, 315};
 constexpr float speed[3] = {600, 120, 200};
 constexpr float ramp_seconds = 0.2f;
 constexpr uint32_t timeout_ms = 250;
@@ -19,7 +20,7 @@ constexpr float max_rpm[2] = {2640.4412f, 3200.5332f};
 constexpr float el05_current = 10, el05_speed = 24, el05_kp = 30;
 constexpr uint16_t pwm_can = 0x300, rotation_can = 0x320;
 constexpr float fold_min = 400, fold_max = 1444, fold_speed = 1000;
-constexpr float grip_open = 1500, grip_closed = 500, grip_handoff = 700;
+constexpr float grip_open = 1500, grip_closed = 500;
 constexpr float rotation_zero = 1024, counts_per_degree = 34.133335f;
 constexpr float rotation_speed = 90;
 } // namespace config

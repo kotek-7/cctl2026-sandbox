@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "el05_motor.hpp"
 #include "m3508_motor.hpp"
+#include "motion.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -12,7 +13,7 @@ CanBus bus(&hfdcan1);
 El05Motor r(bus, config::el05_id, config::host_id);
 M3508Motor theta(config::theta_id, config::max_rpm[0]);
 M3508Motor z(config::z_id, config::max_rpm[1]);
-float offsets[3]{}, targets[3]{}, speeds[3]{};
+AxisMotion axes[3];
 uint32_t seen[3]{};
 bool received[3]{}, enabled = false;
 float measured(unsigned i) {
@@ -74,25 +75,26 @@ bool motorsReady() {
            z.temperature() < 80;
 }
 
-float motorPosition(unsigned i) {
-    return (measured(i) - offsets[i]) / config::native_per_unit[i];
-}
-
 void motorsHold() {
     for (unsigned i = 0; i < 3; ++i) {
-        targets[i] = measured(i);
-        speeds[i] = 0;
+        axes[i].target = measured(i);
+        axes[i].speed = 0;
     }
-    theta.setTargetMotorDeg(targets[1]);
-    z.setTargetMotorDeg(targets[2]);
+    theta.setTargetMotorDeg(axes[1].target);
+    z.setTargetMotorDeg(axes[2].target);
     if (enabled)
-        r.setLocRef(targets[0]);
+        r.setLocRef(axes[0].target);
 }
 
-void motorsOrigin() {
-    for (unsigned i = 0; i < 3; ++i)
-        offsets[i] = measured(i) - config::origin[i] * config::native_per_unit[i];
-    motorsHold();
+void motorsReference(bool r_contact, bool z_contact) {
+    const auto now = HAL_GetTick();
+    if (received[0] && now - seen[0] <= config::feedback_ms && r.positionReady())
+        referenceAxis(axes[0], 0, measured(0), r_contact);
+    if (received[2] && now - seen[2] <= config::feedback_ms)
+        referenceAxis(axes[2], 2, measured(2), z_contact);
+    // 原点取得で変更した位置目標を、次の電流制御より前に渡す。
+    theta.setTargetMotorDeg(axes[1].target);
+    z.setTargetMotorDeg(axes[2].target);
 }
 
 void motorsEnable(bool value) {
@@ -100,7 +102,7 @@ void motorsEnable(bool value) {
         return;
     motorsHold();
     if (value) {
-        r.setLocRef(targets[0]);
+        r.setLocRef(axes[0].target);
         r.enable();
     } else
         r.disable();
@@ -110,34 +112,13 @@ void motorsEnable(bool value) {
 }
 
 void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
-    for (unsigned i = 0; i < 3; ++i) {
-        const float position = motorPosition(i);
-        const float acceleration = config::speed[i] / config::ramp_seconds;
-        const float desired = input[i] * config::speed[i] / 1000.0f;
-        float speed =
-            speeds[i] + std::clamp(desired - speeds[i], -acceleration * dt, acceleration * dt);
-        const float distance = std::max(0.0f, speed > 0 ? config::maximum[i] - position
-                                                        : position - config::minimum[i]);
-        const float limit = std::sqrt(2 * acceleration * distance);
-        speed = std::clamp(speed, -limit, limit);
-        if ((i == 0 && r_contact && speed > 0) || (i == 2 && z_contact && speed < 0))
-            speed = 0;
-        // 動いていない間の追従誤差を、次の移動へ積み残さない。
-        if (speed == 0 && speeds[i] != 0)
-            targets[i] = measured(i);
-        if (speed != 0) {
-            const float native = config::native_per_unit[i];
-            const float lead = std::abs(config::speed[i] * native) * 0.1f;
-            targets[i] = std::clamp(targets[i] + speed * native * dt, measured(i) - lead,
-                                    measured(i) + lead);
-            const float unit_target = std::clamp((targets[i] - offsets[i]) / native,
-                                                 config::minimum[i], config::maximum[i]);
-            targets[i] = offsets[i] + unit_target * native;
-        }
-        speeds[i] = speed;
-    }
-    theta.setTargetMotorDeg(targets[1]);
-    z.setTargetMotorDeg(targets[2]);
+    for (unsigned i = 0; i < 3; ++i)
+        moveAxis(axes[i], i, measured(i), input[i], dt,
+                 i == 0   ? r_contact
+                 : i == 2 ? z_contact
+                          : false);
+    theta.setTargetMotorDeg(axes[1].target);
+    z.setTargetMotorDeg(axes[2].target);
 }
 
 void motorsUpdate(uint32_t now) {
@@ -151,7 +132,7 @@ void motorsUpdate(uint32_t now) {
     }
     if (now - position_at >= 20) {
         if (enabled)
-            r.setLocRef(targets[0]);
+            r.setLocRef(axes[0].target);
         else
             r.disable(false);
         r.requestParam(domain::el05::param::MECH_POS);
