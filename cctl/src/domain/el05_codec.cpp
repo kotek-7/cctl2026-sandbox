@@ -64,7 +64,7 @@ Feedback decodeFeedback(uint32_t ext_id, const uint8_t data[8]) {
     return feedback;
 }
 
-// 位置目標や制御上限などの実数設定を、EL05が受け取る書込み形式にする。
+// 速度指令や電流上限などの実数設定を、EL05が受け取る書込み形式にする。
 void encodeParamFloat(uint16_t param, float value, uint8_t out[8]) {
     for (int i = 0; i < 8; ++i) {
         out[i] = 0;

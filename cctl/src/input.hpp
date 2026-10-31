@@ -22,9 +22,8 @@ inline bool parseInput(const char *text, int values[6]) {
     return *text == '\0' && valid_fold && valid_grip;
 }
 
-// 起動直後や通信断で出力しないための判定。250ms以内の入力と正常なモータ応答が必要。
+// PC入力が操作に使えるかを判定する。初回受信前と250msを超えた通信断ではfalse。
 // 起動後のミリ秒カウンタが上限を超えて0に戻る場合も、符号なしの引き算で扱う。
-inline bool outputsEnabled(bool input_received, uint32_t last_input, uint32_t now,
-                           bool motors_ready) {
-    return input_received && now - last_input <= config::timeout_ms && motors_ready;
+inline bool outputsEnabled(bool input_received, uint32_t last_input, uint32_t now) {
+    return input_received && now - last_input <= config::timeout_ms;
 }

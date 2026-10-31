@@ -3,13 +3,12 @@
 #include <algorithm>
 #include <cmath>
 
-// targetはモータの目標角度。speedは機体の移動速度（r・zはmm/s、θは度/s）。
+// speedは機体への速度指令（r・zはmm/s、θは度/s）。
 struct AxisMotion {
     bool referenced = false;
     // スイッチに当たった位置から、モータ角度と機体の位置のずれを求める。
     // モータ角度 = offset + 機体の位置 × native_per_unit。
     float offset = 0;
-    float target = 0;
     float speed = 0;
 };
 
@@ -19,12 +18,11 @@ inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool
     if (index == 1 || axis.referenced || !contact)
         return;
     axis.offset = measured - config::origin[index] * config::native_per_unit[index];
-    axis.target = measured;
     axis.speed = 0;
     axis.referenced = true;
 }
 
-// 1軸の手動移動を計算する。操作入力を位置目標に変え、加減速・接点・可動範囲で動きを制限する。
+// 1軸の手動移動を計算する。操作入力から速度を求め、加減速・接点・可動範囲で動きを制限する。
 // inputは±1000、dtは秒。
 inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input, float dt,
                      bool contact) {
@@ -43,33 +41,8 @@ inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input
         const float stopping_speed = std::sqrt(2 * acceleration * distance);
         speed = std::clamp(speed, -stopping_speed, stopping_speed);
     }
-    // 原点登録前でも、スイッチを押し込む方向は止める。
-    // 速度を0にするだけでは前の目標へ動くため、目標も現在位置に戻す。
-    const float direction = config::contact_direction[index];
-    const float target_lead = (axis.target - measured) / native_per_unit;
-    const bool moving_into_contact = speed * direction > 0;
-    const bool targeting_past_contact = target_lead * direction > 0;
-    if (contact && (moving_into_contact || targeting_past_contact)) {
+    // 接点から離れる方向は許可し、押し込む方向の速度だけ0にする。
+    if (contact && speed * config::contact_direction[index] > 0)
         speed = 0;
-        axis.target = measured;
-    }
-    // 速度が0になったら現在位置を目標にする。前の目標を残すと、そこまで動き続ける。
-    if (speed == 0 && axis.speed != 0)
-        axis.target = measured;
-    if (speed != 0) {
-        // モータが動けない間も入力は届くため、目標が実測位置から離れすぎないようにする。
-        const float max_target_lead =
-            std::abs(config::speed[index] * native_per_unit) * config::target_lead_seconds;
-        axis.target = std::clamp(axis.target + speed * native_per_unit * dt,
-                                 measured - max_target_lead, measured + max_target_lead);
-        if (axis.referenced) {
-            // r・zはモータの回転方向と機体の移動方向が逆。
-            // モータ角度をmmに戻してから、機体の可動範囲に収める。
-            const float limited_position =
-                std::clamp((axis.target - axis.offset) / native_per_unit, config::minimum[index],
-                           config::maximum[index]);
-            axis.target = axis.offset + limited_position * native_per_unit;
-        }
-    }
     axis.speed = speed;
 }

@@ -10,7 +10,7 @@ void Pid::reset() {
     prev_error_ = 0.0f;
 }
 
-// θ・zの角度と回転数を目標に近づけるための制御計算。回転数または電流の上限内で出力する。
+// θ・zの実測回転数を指令に近づけるため、電流上限内でPID出力を求める。
 float Pid::update(float target, float measured, float dt_s) {
     const float error = target - measured;
     const float proportional = kp_ * error;

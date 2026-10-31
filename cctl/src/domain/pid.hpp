@@ -6,7 +6,7 @@ namespace domain {
 // 出力が飽和し、誤差がさらに飽和を強める方向なら、積分値をリセットする。
 class Pid {
   public:
-    // 位置制御または速度制御の応答の強さと、許容する回転数・電流の上限を決める。
+    // θ・zの速度制御のゲインと電流上限を設定する。
     Pid(float kp, float ki, float kd, float out_limit)
         : kp_(kp), ki_(ki), kd_(kd), out_limit_(out_limit) {}
 

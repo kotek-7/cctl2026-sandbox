@@ -26,7 +26,7 @@ class MultiTurnCounter {
     // 原点を取り直す。次に受け取った角度が新しい 0 になる。
     void reset();
 
-    // θ・zの位置制御を始めるための角度が得られているかを示す。機体の原点登録とは別。
+    // θ・zの初回返信から角度の基準が得られているかを示す。機体の原点登録とは別。
     bool hasReference() const {
         return has_reference_;
     }

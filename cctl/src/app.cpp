@@ -71,12 +71,12 @@ extern "C" void loop() {
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
     // 接点はLowでON。PC未接続でも原点を登録する。
     motorsReference(r_contact, z_contact);
-    const bool enabled = outputsEnabled(input_received, last_input, now, motorsReady());
+    const bool enabled = outputsEnabled(input_received, last_input, now);
     motorsEnable(enabled);
     static uint32_t motion_at = 0;
     if (now - motion_at >= 20) {
-        // 遅延分を一度に動かさず、目標の更新量を20ms分に抑える。
-        const float dt = std::min((now - motion_at) / 1000.0f, 0.02f);
+        // 軸の加減速とEEの姿勢を20ms分ずつ更新する。
+        constexpr float dt = 0.02f;
         motion_at = now;
         if (enabled)
             motorsMove(input, dt, r_contact, z_contact);

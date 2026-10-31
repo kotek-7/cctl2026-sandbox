@@ -18,7 +18,7 @@ Feedback decodeFeedback(const uint8_t data[8]) {
     return fb;
 }
 
-// 1回転ごとに戻るエンコーダ値を、θ・zの位置制御に使える連続した回転量として追跡する。
+// 1回転ごとに戻るエンコーダ値を、接点原点と端点減速に使う連続した回転量として追跡する。
 void MultiTurnCounter::update(uint16_t raw_angle) {
     if (!has_reference_) {
         last_raw_angle_ = raw_angle;
@@ -46,7 +46,7 @@ void MultiTurnCounter::reset() {
     counts_ = 0;
 }
 
-// 位置PIDが使うモータ角度。基準から何回転したかを含め、度単位で返す。
+// 機体の位置に換算するモータ角度。基準からの回転量を度単位で返す。
 float MultiTurnCounter::degrees() const {
     return static_cast<float>(counts_) * 360.0f / static_cast<float>(COUNTS_PER_REV);
 }
