@@ -4,7 +4,6 @@
 #include <cstdint>
 
 // Feetech STS プロトコルのパケット組立・検証。
-// HAL には依存しないので、ホスト側で単体テストできる。
 namespace domain::sts3215 {
 
 constexpr uint8_t HEADER = 0xFF;

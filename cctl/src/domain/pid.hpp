@@ -25,7 +25,7 @@ class Pid {
     void reset();
 
     // 目標値と計測値から出力を計算し、内部状態を更新する。
-    // dt_s が 0 なら積分・微分を進めず P 項のみを返す。
+    // dt_s <= 0 では積分を加算せず、微分項を0とする。蓄積済みの積分項は使う。
     float update(float target, float measured, float dt_s);
 
   private:

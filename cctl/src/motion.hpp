@@ -12,7 +12,7 @@ struct AxisMotion {
     float speed = 0;
 };
 
-// indexは r=0 / θ=1 / z=2。measuredはモータ座標。θと登録済みの軸は更新しない。
+// indexは r=0 / θ=1 / z=2。measuredはモータ座標。
 inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool contact) {
     if (index == 1 || axis.referenced || !contact)
         return;
