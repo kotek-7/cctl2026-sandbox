@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut port = serialport::new(device, 115200)
         .timeout(Duration::from_millis(20))
         .open()?;
-    println!("Create: 原点 / Options: 運転 / PS: 保持 / Ctrl+C: 終了");
+    println!("Create: 原点登録して操作開始 / Ctrl+C: 終了");
     loop {
         let started = Instant::now();
         while pads.next_event().is_some() {}
@@ -34,8 +34,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !gamepad.is_connected() {
             return Err("DualSenseが切断されました".into());
         }
-        let [r, theta, z, rotate, fold, grip, buttons] = pad::read(&gamepad);
-        writeln!(port, "{r} {theta} {z} {rotate} {fold} {grip} {buttons}")?;
+        let [r, theta, z, rotate, fold, grip, home] = pad::read(&gamepad);
+        writeln!(port, "{r} {theta} {z} {rotate} {fold} {grip} {home}")?;
         std::thread::sleep(Duration::from_millis(20).saturating_sub(started.elapsed()));
     }
 }

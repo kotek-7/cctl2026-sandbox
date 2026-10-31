@@ -1,6 +1,6 @@
 use gilrs::{Axis, Button, Gamepad};
 
-// r / θ / z / 回転 / 畳み / 把持 / ボタン。符号は機体の正方向に合わせる。
+// r / θ / z / 回転 / 畳み / 把持 / 原点登録。符号は機体の正方向に合わせる。
 pub fn read(pad: &Gamepad) -> [i32; 7] {
     let pressed = |b| pad.is_pressed(b);
     let trigger = |b| pad.button_data(b).map_or(0.0, |v| v.value());
@@ -31,8 +31,6 @@ pub fn read(pad: &Gamepad) -> [i32; 7] {
         } else {
             0
         },
-        i32::from(pressed(Button::Select))
-            | (i32::from(pressed(Button::Start)) << 1)
-            | (i32::from(pressed(Button::Mode)) << 2),
+        i32::from(pressed(Button::Select)),
     ]
 }

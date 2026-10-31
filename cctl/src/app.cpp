@@ -12,8 +12,8 @@ volatile char received_line[80];
 volatile bool line_ready = false;
 int input[7]{};
 uint32_t last_input = 0;
-bool running = false, holding = false, homed = false;
-unsigned previous_buttons = 0;
+bool homed = false;
+bool previous_home = false;
 
 bool parse(char *text, int values[7]) {
     for (unsigned i = 0; i < 7; ++i) {
@@ -29,7 +29,7 @@ bool parse(char *text, int values[7]) {
     while (*text == ' ' || *text == '\r')
         ++text;
     return *text == '\0' && values[4] >= -1 && values[4] <= 1 && values[5] >= 0 && values[5] <= 3 &&
-           values[6] >= 0 && values[6] <= 7;
+           values[6] >= 0 && values[6] <= 1;
 }
 
 void readInput() {
@@ -49,23 +49,12 @@ void readInput() {
         return;
     std::copy(values, values + 7, input);
     last_input = HAL_GetTick();
-    const unsigned buttons = input[6];
-    const unsigned pressed = buttons & ~previous_buttons;
-    previous_buttons = buttons;
-    if (buttons & 4) {
-        if (running) {
-            motorsHold();
-            holding = true;
-        }
-        running = false;
-    } else if ((pressed & 1) && !running && !holding && motorsReady()) {
+    const bool home = input[6];
+    if (home && !previous_home && !homed && motorsReady()) {
         motorsOrigin();
         homed = true;
-    } else if ((pressed & 2) && homed && motorsReady()) {
-        motorsEnable(true);
-        running = true;
-        holding = false;
     }
+    previous_home = home;
 }
 } // namespace
 
@@ -97,18 +86,17 @@ extern "C" void loop() {
     motorsReceive();
     readInput();
     const uint32_t now = HAL_GetTick();
-    if (now - last_input > config::timeout_ms || !motorsReady()) {
-        running = holding = false;
-        motorsEnable(false);
-    }
+    if (now - last_input > config::timeout_ms || !motorsReady())
+        homed = false;
+    motorsEnable(homed);
     static uint32_t motion_at = 0;
     if (now - motion_at >= 20) {
         const float dt = std::min((now - motion_at) / 1000.0f, 0.02f);
         motion_at = now;
-        if (running)
+        if (homed)
             motorsMove(input, dt, HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET,
                        HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET);
-        eeUpdate(running, input[3], input[4], input[5], motorPosition(1), dt);
+        eeUpdate(homed, input[3], input[4], input[5], motorPosition(1), dt);
     }
     motorsUpdate(now);
 }
