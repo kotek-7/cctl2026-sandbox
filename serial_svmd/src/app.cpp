@@ -7,6 +7,7 @@ namespace {
 constexpr uint16_t COMMAND_ID = 0x320;
 uint32_t last_command = 0;
 } // namespace
+// サーボとの通信を準備し、CAN ID 0x320の受信を開始する。
 extern "C" void setup() {
     servoBegin();
     CAN_FilterTypeDef filter{};
@@ -19,6 +20,7 @@ extern "C" void setup() {
     if (HAL_CAN_ConfigFilter(&hcan, &filter) != HAL_OK || HAL_CAN_Start(&hcan) != HAL_OK)
         Error_Handler();
 }
+// CANの回転指令をサーボへ送り、正常な指令が250msを超えて途絶えたら出力を切る。
 extern "C" void loop() {
     while (HAL_CAN_GetRxFifoFillLevel(&hcan, CAN_RX_FIFO0)) {
         CAN_RxHeaderTypeDef header{};

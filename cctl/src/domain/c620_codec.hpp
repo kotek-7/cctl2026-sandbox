@@ -26,9 +26,11 @@ class MultiTurnCounter {
     // 原点を取り直す。次に受け取った角度が新しい 0 になる。
     void reset();
 
+    // 基準となる最初の角度を受信済みならtrueを返す。
     bool hasReference() const {
         return has_reference_;
     }
+    // 最初の受信角度からの累積カウントを返す。
     int32_t counts() const {
         return counts_;
     }
@@ -64,11 +66,14 @@ void writeCommandSlot(uint8_t frame[8], uint8_t esc_id, int16_t raw);
 // 1台ずつ送ると、他の台の指令が未設定スロットの0で上書きされる。
 class CommandFrame {
   public:
+    // 電流指令を送るCAN IDを保存し、4台分の指令を0で初期化する。
     explicit CommandFrame(uint16_t command_id) : command_id_(command_id) {}
 
+    // この電流指令を送るCAN IDを返す。
     uint16_t commandId() const {
         return command_id_;
     }
+    // 4台分の電流指令を格納した8バイトの配列を返す。
     const uint8_t *data() const {
         return data_;
     }

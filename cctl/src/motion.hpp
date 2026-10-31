@@ -13,6 +13,7 @@ struct AxisMotion {
     float speed = 0;
 };
 
+// 最初の接点検出時にr・zの原点を登録する。目標を現在位置に合わせ、速度を0にする。
 // indexは r=0 / θ=1 / z=2。measuredはモータから読んだ角度。
 inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool contact) {
     if (index == 1 || axis.referenced || !contact)
@@ -23,7 +24,8 @@ inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool
     axis.referenced = true;
 }
 
-// input: ±1000、dt: 秒。
+// 入力と経過時間から1軸の速度・位置目標を更新し、接点と可動範囲で制限する。
+// inputは±1000、dtは秒。
 inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input, float dt,
                      bool contact) {
     const float native_per_unit = config::native_per_unit[index];

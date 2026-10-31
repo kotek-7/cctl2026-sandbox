@@ -6,18 +6,22 @@ namespace domain {
 // 出力が飽和し、誤差がさらに飽和を強める方向なら、積分値をリセットする。
 class Pid {
   public:
+    // 比例・積分・微分のゲインと出力上限を保存する。
     Pid(float kp, float ki, float kd, float out_limit)
         : kp_(kp), ki_(ki), kd_(kd), out_limit_(out_limit) {}
 
+    // 比例・積分・微分のゲインを変更する。蓄積済みの積分値は残す。
     void setGains(float kp, float ki, float kd) {
         kp_ = kp;
         ki_ = ki;
         kd_ = kd;
     }
 
+    // 出力の絶対値に適用する上限を変更する。
     void setOutLimit(float out_limit) {
         out_limit_ = out_limit;
     }
+    // 現在設定されている出力の絶対値の上限を返す。
     float outLimit() const {
         return out_limit_;
     }

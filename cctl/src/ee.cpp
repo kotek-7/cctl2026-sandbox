@@ -12,10 +12,12 @@ float fold_pulse = 500;
 float grip_pulse = 500;
 float rotation_angle = 0;
 } // namespace
+// サーボ基板につながるCAN通信を開始する。失敗したらError_Handlerを呼ぶ。
 void eeBegin() {
     if (!bus.begin())
         Error_Handler();
 }
+// 入力からEEの姿勢目標を更新して送る。出力無効時は目標を残して解除指令を送る。
 void eeUpdate(bool enabled, int rotate, int fold, int grip, float dt) {
     if (enabled) {
         fold_pulse = std::clamp(fold_pulse + fold * config::fold_speed * dt, config::fold_min,

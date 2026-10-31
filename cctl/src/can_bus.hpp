@@ -4,6 +4,7 @@
 
 class CanBus {
   public:
+    // 使用するCANのHALハンドルを保存する。通信の開始はbeginで行う。
     explicit CanBus(FDCAN_HandleTypeDef *handle) : handle_(handle) {}
     bool begin();
     bool sendStd(uint16_t id, const uint8_t *data, uint8_t length);

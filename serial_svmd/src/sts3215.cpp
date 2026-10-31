@@ -4,7 +4,7 @@
 #include <cstring>
 extern "C" UART_HandleTypeDef huart1;
 namespace {
-// 1台への書込みにも、応答を返さないSYNC_WRITEを使う。
+// ID 1の指定アドレスへデータを書き込む。応答を返さないSYNC_WRITE命令を使う。
 void write(uint8_t address, const uint8_t *data, uint8_t length) {
     uint8_t parameters[10] = {address, length, 1};
     std::memcpy(parameters + 3, data, length);
@@ -14,6 +14,7 @@ void write(uint8_t address, const uint8_t *data, uint8_t length) {
     HAL_UART_Transmit(&huart1, packet, size, 5);
 }
 } // namespace
+// シリアル通信を1Mbpsに設定し、ID 1のサーボへ出力停止を指令する。
 void servoBegin() {
     huart1.Init.BaudRate = 1000000;
     huart1.Init.OverSampling = UART_OVERSAMPLING_8;
@@ -21,6 +22,7 @@ void servoBegin() {
         Error_Handler();
     servoEnable(false);
 }
+// 符号付きの目標位置をサーボ用の数値形式に変換し、ID 1へ送る。
 void servoTarget(int16_t position) {
     // STSの負数は2の補数ではなく符号+絶対値。
     const uint16_t encoded = position < 0 ? (0x8000 | -position) : position;
@@ -29,6 +31,7 @@ void servoTarget(int16_t position) {
     domain::sts3215::encodeTarget(target, data);
     write(41, data, sizeof(data));
 }
+// ID 1のサーボへ、出力の有効・無効を指令する。
 void servoEnable(bool enabled) {
     const uint8_t value = enabled;
     write(40, &value, 1);

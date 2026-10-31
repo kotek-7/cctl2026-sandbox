@@ -22,6 +22,7 @@ inline bool parseInput(const char *text, int values[6]) {
     return *text == '\0' && valid_fold && valid_grip;
 }
 
+// 入力を受信済みで、その入力が250ms以内かつモータが正常なら出力を許可する。
 // 起動後のミリ秒カウンタが上限を超えて0に戻る場合も、符号なしの引き算で扱う。
 inline bool outputsEnabled(bool input_received, uint32_t last_input, uint32_t now,
                            bool motors_ready) {

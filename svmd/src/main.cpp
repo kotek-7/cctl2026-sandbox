@@ -7,15 +7,18 @@ constexpr uint16_t COMMAND_ID = 0x300;
 constexpr uint8_t PINS[4] = {3, 6, 10, 9};
 Servo servos[4];
 uint32_t last_command = 0;
+// 接続中の4本のサーボ出力をすべて切る。
 void stop() {
     for (auto &servo : servos)
         if (servo.attached())
             servo.detach();
 }
 } // namespace
+// CAN通信を1Mbpsで開始する。
 void setup() {
     CAN.begin(CanBitRate::BR_1000k);
 }
+// CANの4本分のPWM指令を反映し、正常な指令が250msを超えて途絶えたら出力を切る。
 void loop() {
     while (CAN.available()) {
         const auto msg = CAN.read();

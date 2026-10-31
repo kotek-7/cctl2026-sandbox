@@ -12,6 +12,7 @@ int input[6]{};
 uint32_t last_input = 0;
 bool input_received = false;
 
+// 受信した最新の1行を検査し、正常なら操作入力と受信時刻を更新する。
 void readInput() {
     char line[80];
     // USB割込みとの競合を防ぐ。割込み禁止区間はコピー中だけ。
@@ -56,10 +57,12 @@ extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
             overflow = true;
     }
 }
+// モータとサーボ基板につながるCAN通信を開始する。
 extern "C" void setup() {
     motorsBegin();
     eeBegin();
 }
+// 入力とモータ応答から出力の可否を判定し、軸とサーボへの指令を更新する。
 extern "C" void loop() {
     motorsReceive();
     readInput();

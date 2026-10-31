@@ -8,6 +8,7 @@ use std::{
 
 const SEND_INTERVAL: Duration = Duration::from_millis(20);
 
+// DualSenseとシリアルポートを開き、入力を20msごとにCCTLへ送る。
 fn main() -> Result<(), Box<dyn Error>> {
     let device = std::env::args()
         .nth(1)

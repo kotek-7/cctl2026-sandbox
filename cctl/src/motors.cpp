@@ -17,6 +17,7 @@ AxisMotion axes[3];
 uint32_t last_feedback[3]{};
 bool feedback_received[3]{};
 bool enabled = false;
+// 指定した軸のモータ角度を返す。r=0はラジアン、θ=1とz=2は度。
 float measured(unsigned i) {
     switch (i) {
     case 0:
@@ -29,6 +30,7 @@ float measured(unsigned i) {
 }
 } // namespace
 
+// CAN通信を開始し、rのモータを停止した状態で位置制御モードと上限値を設定する。
 void motorsBegin() {
     if (!bus.begin())
         Error_Handler();
@@ -45,6 +47,7 @@ void motorsBegin() {
     r.requestParam(domain::el05::param::MECH_POS);
 }
 
+// CANに届いた返信を読み、各モータの角度・状態と最終受信時刻を更新する。
 void motorsReceive() {
     domain::CanFrame frame;
     while (bus.receive(frame)) {
@@ -74,6 +77,7 @@ void motorsReceive() {
     }
 }
 
+// 3軸の返信が200ms以内で、rの位置が有効・異常なし、θ・zが80℃未満ならtrue。
 bool motorsReady() {
     const auto now = HAL_GetTick();
     for (unsigned i = 0; i < 3; ++i)
@@ -107,6 +111,7 @@ void motorsReference(bool r_contact, bool z_contact) {
     z.setTargetMotorDeg(axes[2].target);
 }
 
+// 出力の有効・無効を切り替える。切替時は位置目標を現在位置に戻す。
 void motorsEnable(bool requested_enabled) {
     if (enabled == requested_enabled)
         return;
@@ -121,6 +126,7 @@ void motorsEnable(bool requested_enabled) {
     enabled = requested_enabled;
 }
 
+// r・θ・zの入力から速度と位置目標を更新し、接点と可動範囲で制限する。
 void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
     const bool contacts[3] = {r_contact, false, z_contact};
     for (unsigned i = 0; i < 3; ++i)
@@ -129,6 +135,7 @@ void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
     z.setTargetMotorDeg(axes[2].target);
 }
 
+// θ・zの電流指令を1msごとに送る。rは20msごとに位置または停止を指令し、位置を読む。
 void motorsUpdate(uint32_t now) {
     static uint32_t current_at = 0, position_at = 0;
     if (now - current_at >= 1) {
