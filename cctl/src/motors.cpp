@@ -15,7 +15,8 @@ M3508Motor theta(config::theta_id, config::max_rpm[0]);
 M3508Motor z(config::z_id, config::max_rpm[1]);
 AxisMotion axes[3];
 uint32_t last_feedback[3]{};
-bool received[3]{}, enabled = false;
+bool feedback_received[3]{};
+bool enabled = false;
 float measured(unsigned i) {
     switch (i) {
     case 0:
@@ -60,16 +61,16 @@ void motorsReceive() {
                 std::isfinite(domain::el05::paramReplyFloat(frame.data));
             if (feedback || position) {
                 last_feedback[0] = HAL_GetTick();
-                received[0] = true;
+                feedback_received[0] = true;
             }
         } else if (frame.id == theta.feedbackId()) {
             theta.onFeedback(frame.data);
             last_feedback[1] = HAL_GetTick();
-            received[1] = true;
+            feedback_received[1] = true;
         } else if (frame.id == z.feedbackId()) {
             z.onFeedback(frame.data);
             last_feedback[2] = HAL_GetTick();
-            received[2] = true;
+            feedback_received[2] = true;
         }
     }
 }
@@ -77,7 +78,7 @@ void motorsReceive() {
 bool motorsReady() {
     const auto now = HAL_GetTick();
     for (unsigned i = 0; i < 3; ++i)
-        if (!received[i] || now - last_feedback[i] > config::feedback_ms)
+        if (!feedback_received[i] || now - last_feedback[i] > config::feedback_ms)
             return false;
     return r.positionReady() && r.faultBits() == 0 && theta.temperature() < 80 &&
            z.temperature() < 80;
@@ -98,27 +99,27 @@ static void holdPosition() {
 // 各軸の返信鮮度を個別に確認する。他軸が未接続でも原点を登録できる。
 void motorsReference(bool r_contact, bool z_contact) {
     const auto now = HAL_GetTick();
-    if (received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
+    if (feedback_received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
         referenceAxis(axes[0], 0, measured(0), r_contact);
-    if (received[2] && now - last_feedback[2] <= config::feedback_ms)
+    if (feedback_received[2] && now - last_feedback[2] <= config::feedback_ms)
         referenceAxis(axes[2], 2, measured(2), z_contact);
     // 原点取得で変更した位置目標を、次の電流制御より前に渡す。
     theta.setTargetMotorDeg(axes[1].target);
     z.setTargetMotorDeg(axes[2].target);
 }
 
-void motorsEnable(bool value) {
-    if (enabled == value)
+void motorsEnable(bool requested_enabled) {
+    if (enabled == requested_enabled)
         return;
     holdPosition();
-    if (value) {
+    if (requested_enabled) {
         r.setLocRef(axes[0].target);
         r.enable();
     } else
         r.disable();
-    theta.setEnabled(value);
-    z.setEnabled(value);
-    enabled = value;
+    theta.setEnabled(requested_enabled);
+    z.setEnabled(requested_enabled);
+    enabled = requested_enabled;
 }
 
 void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {

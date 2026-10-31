@@ -18,18 +18,17 @@ pub fn read(pad: &Gamepad) -> [i32; 6] {
             (value * scale * 1000.0) as i32
         }
     };
-    [
-        scaled_input(pad.value(Axis::LeftStickY)),
-        scaled_input(-pad.value(Axis::LeftStickX)),
-        scaled_input(trigger(Button::RightTrigger2) - trigger(Button::LeftTrigger2)),
-        scaled_input(-pad.value(Axis::RightStickX)),
-        i32::from(pressed(Button::DPadUp)) - i32::from(pressed(Button::DPadDown)),
-        if pressed(Button::DPadLeft) {
-            1
-        } else if pressed(Button::DPadRight) {
-            2
-        } else {
-            0
-        },
-    ]
+    let r = scaled_input(pad.value(Axis::LeftStickY));
+    let theta = scaled_input(-pad.value(Axis::LeftStickX));
+    let z = scaled_input(trigger(Button::RightTrigger2) - trigger(Button::LeftTrigger2));
+    let rotate = scaled_input(-pad.value(Axis::RightStickX));
+    let fold = i32::from(pressed(Button::DPadUp)) - i32::from(pressed(Button::DPadDown));
+    let grip = if pressed(Button::DPadLeft) {
+        1
+    } else if pressed(Button::DPadRight) {
+        2
+    } else {
+        0
+    };
+    [r, theta, z, rotate, fold, grip]
 }

@@ -17,7 +17,9 @@ inline bool parseInput(const char *text, int values[6]) {
     }
     while (*text == ' ' || *text == '\r')
         ++text;
-    return *text == '\0' && values[4] >= -1 && values[4] <= 1 && values[5] >= 0 && values[5] <= 2;
+    const bool valid_fold = values[4] >= -1 && values[4] <= 1;
+    const bool valid_grip = values[5] >= 0 && values[5] <= 2;
+    return *text == '\0' && valid_fold && valid_grip;
 }
 
 // 未受信の初期値を有効入力と区別する。符号なしの時刻差でtickの周回を扱う。
