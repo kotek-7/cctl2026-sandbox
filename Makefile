@@ -1,13 +1,13 @@
 .DEFAULT_GOAL := help
 BUILD_TYPE ?= Release
 PIO ?= $(HOME)/.platformio/penv/bin/pio
-.PHONY: help setup test build-cctl build-serial-svmd build-svmd
+.PHONY: help build test build-cctl build-serial-svmd build-svmd
 help:
-	@printf '%s\n' 'make setup   Python依存を準備' 'uv run --locked operate.py DEVICE   操縦開始' 'make test    非実機テスト' 'make build-cctl / build-serial-svmd / build-svmd   基板FWビルド'
-setup:
-	uv sync --locked
+	@printf '%s\n' 'make build   PC用Rustプログラムをビルド' 'cargo run --release --locked -- DEVICE   操縦開始' 'make test    非実機テスト' 'make build-cctl / build-serial-svmd / build-svmd   基板FWビルド'
+build:
+	cargo build --release --locked
 test:
-	uv run --locked python -m unittest discover -s tests/python -v
+	cargo test --locked
 	cmake -S tests -B tests/build -G Ninja
 	cmake --build tests/build
 	ctest --test-dir tests/build --output-on-failure

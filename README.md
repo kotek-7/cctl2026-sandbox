@@ -1,21 +1,18 @@
 # DualSenseで手動操縦
 
 DualSenseとCCTLを、それぞれLinux PCへUSB接続する。
-PC側の実行コードは **`operate.py` の1ファイル**。
-`evdev`で入力を読み、`pyserial`で既存CCTLへ直接送る。
+PC側はRust。`gilrs`で入力を読み、`serialport`で既存CCTLへ直接送る。
 設定は `machine.toml`。機体のr/θ/zとEEだけを扱う。
 
 ## 起動
 
-Python 3.11以上とuvを使用する。依存はevdevとpyserialの2つで、版を固定している。
-evdevのビルドにはCコンパイラとLinux/Pythonヘッダが必要。
-Ubuntuでは `sudo apt install build-essential linux-libc-dev python3-dev`。
+Rust/Cargoとlibudev開発パッケージを使用する。
+Ubuntuでは `sudo apt install build-essential pkg-config libudev-dev`。
 ゲームパッドとUSBシリアルにアクセスできるユーザーで実行する。
 
 ```sh
 cd /home/kotek/dev/cctl2026-sandbox
-uv sync --locked
-uv run --locked operate.py /dev/serial/by-id/対象CCTL
+cargo run --release --locked -- /dev/serial/by-id/対象CCTL
 ```
 
 DualSenseは起動前に1台接続する。通常版とEdgeに対応する入力IDを使用。
@@ -49,10 +46,18 @@ EE回転の `zero0_count=1024` は元設定のままで、実機校正は未実�
 
 ## コードを読む
 
-`operate.py` を上から読む。
-設定検証 → USB応答の読取り → 起動時の設定照合 → パッド入力 → 座標計算 → `drive()` の操縦ループ → 起動・終了処理、の順。
-制御器クラス、指令クラス、要求キュー、独立した状態更新層は使わない。
-`Feedback` は受信データを保持するだけのレコード。
+本体は `src/` の3モジュール。
+
+| ファイル | 内容 |
+|---|---|
+| `main.rs` | パッド入力、起動・終了、単一の操縦ループ |
+| `robot.rs` | 設定の読込み、座標・制動・サーボの計算 |
+| `board.rs` | USB/CANの形式、応答読取り、起動時の設定照合 |
+
+`main.rs` の `drive()` を読むと操縦の流れを追える。
+設定は起動時に順番に書込み、操縦中のループへ設定同期処理を持ち込まない。
+制御器クラス、指令型、要求キュー、独立した状態更新層は使わない。
+受信値と入力値は小さな構造体に保持する。
 
 `cctl/`、`serial_svmd/`、`svmd/` は既存基板FWと必要なライブラリ。
 元のモータ保護・通信ドライバを保持している。書込みは自動実行しない。
@@ -67,6 +72,6 @@ make build-serial-svmd
 make build-svmd
 ```
 
-模擬基板は `tests/python/test_operate.py` 内だけにある。
+模擬基板は `tests/rust/` 内だけにある。
 実機の駆動・停止距離・入力方向・サーボ初期姿勢は未確認。
 検証内容は `VERIFICATION.md` に記録する。

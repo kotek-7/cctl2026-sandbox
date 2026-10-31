@@ -6,6 +6,5 @@
 /led-music/
 /.vscode/
 
-/.venv/
-__pycache__/
-/.ruff_cache/
+
+/target/

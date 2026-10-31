@@ -1,17 +1,18 @@
 # 検証記録
 
-2026-10-31。PC側をPythonの `operate.py` 1ファイルへ変更した後の記録。
-旧Rustコード・シミュレータ・起動ラッパは削除済み。
+2026-10-31。PC側をRustの3モジュール（main / robot / board）へ置き換えた後の記録。
+Python版とその依存設定は削除済み。
 
 `make test` 成功:
 
-- Python 14テスト。起動時の出力無効化、設定照合、原点/中立条件、接点、PS保持停止、RUN応答待ちとその中断、通信断、モータ異常、終了時の3基板への停止送信。
-- evdevの軸・ボタン対応、r/zの符号と加速、制動距離、EE回転範囲、PWM端点への到達。
-- 実pyserialをLinuxの仮想端末へ接続し、実行コードの初期設定処理を検証。
+- Rust 14テスト。起動時の出力無効化、原点/中立条件、接点、PS保持停止、RUN応答待ちとその中断、通信断、モータ異常、入力処理遅延、終了時の停止送信。
+- r/zの符号と制動、EE回転範囲、PWM端点への到達、不正設定の拒否。
+- serialportの仮想端末ペアに模擬基板を接続し、実際の設定照合・操縦ループ・終了処理を検証。模擬基板はtests/rust内のみ。
 - CTestの5テスト: CCTL・SerialSVMD・SVMDのロジック、モータ/STS通信ドライバ。
 
-`operate.py --help`、Ruffの構文/未使用参照/インポート検査と整形確認、`git diff --check` も成功。
-依存はevdev 1.9.3、pyserial 3.5。uv.lockに固定。
+`cargo run --locked -- --help`、`cargo clippy --locked --all-targets -- -D warnings`、
+`cargo fmt --check`、`git diff --check` も成功。
+Rust依存はCargo.lockに固定。
 
 基板FWのソースは今回変更していない。
 実DualSense、USB実接続、実機での移動・停止距離・サーボ初期姿勢は未確認。
