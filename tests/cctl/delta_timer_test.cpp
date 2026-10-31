@@ -5,7 +5,6 @@
 using domain::DeltaTimer;
 
 TEST_CASE("初回は経過時間を 0 とする") {
-    // 前回の呼び出しが無い時点では経過時間が決まらない。
     DeltaTimer timer;
     CHECK(timer.update(1000) == doctest::Approx(0.0f));
 }

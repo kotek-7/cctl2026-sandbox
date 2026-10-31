@@ -28,18 +28,17 @@ extern "C" void loop() {
         if (header.IDE != CAN_ID_STD || header.RTR != CAN_RTR_DATA || header.StdId != COMMAND_ID ||
             header.DLC != 3 || data[0] > 1)
             continue;
-        // CAN位置は上位byteが先の2の補数。負数を明示的に復号する。
+        // CAN位置はビッグエンディアンの符号付き16bit（2の補数）。
         const int raw = (data[1] << 8) | data[2];
         const int position = raw >= 32768 ? raw - 65536 : raw;
         if (position < -28672 || position > 28672)
             continue;
         last_command = HAL_GetTick();
-        // 目標を書いてからトルクを入れる。無効指令は毎回OFFを送る。
+        // 古い目標へ動かないよう、目標を書いてからトルクを入れる。
         if (data[0])
             servoTarget(static_cast<int16_t>(position));
         servoEnable(data[0]);
     }
-    // 最後の正常な指令から250msを超えたらトルクを解除する。
     if (HAL_GetTick() - last_command > 250) {
         servoEnable(false);
         HAL_Delay(1);

@@ -6,7 +6,8 @@
 extern "C" FDCAN_HandleTypeDef hfdcan2;
 namespace {
 CanBus bus(&hfdcan2);
-// PWM幅はµs、回転角は初期カウントからの相対角度（deg）。停止中も目標を保持する。
+// pulseはサーボへ送るパルス幅（µs）。angleは開始姿勢からの回転角（度）。
+// 出力を切ってもこの値を残し、再開時に同じ姿勢を指令する。
 float fold_pulse = 500;
 float grip_pulse = 500;
 float rotation_angle = 0;
@@ -28,7 +29,7 @@ void eeUpdate(bool enabled, int rotate, int fold, int grip, float dt) {
             std::clamp(rotation_angle, (-28672 - config::rotation_zero) / config::counts_per_degree,
                        (28672 - config::rotation_zero) / config::counts_per_degree);
     }
-    // CAN 0x300: 畳み1本・把持3本のPWM幅を16bit上位byteから送る。0は出力解除。
+    // PWMは畳み1本、把持3本の順。各値は上位バイトから送り、0で出力を切る。
     uint8_t pwm[8]{};
     if (enabled) {
         for (unsigned i = 0; i < 4; ++i) {
@@ -38,7 +39,8 @@ void eeUpdate(bool enabled, int rotate, int fold, int grip, float dt) {
         }
     }
     bus.sendStd(config::pwm_can, pwm, 8);
-    // CAN 0x320: 有効フラグ + 符号付き16bit位置。STS固有の符号形式への変換は受信側。
+    // 回転指令は出力ON/OFFと16bitの位置。負数は2の補数で送る。
+    // サーボが使う「符号+絶対値」への変換はSerialSVMDが行う。
     const int16_t position =
         std::lround(config::rotation_zero + rotation_angle * config::counts_per_degree);
     const uint16_t bits = static_cast<uint16_t>(position);

@@ -1,6 +1,5 @@
 use gilrs::{Axis, Button, Gamepad};
 
-// r / θ / z / 回転 / 畳み / 把持。符号は機体の正方向に合わせる。
 pub fn read(pad: &Gamepad) -> [i32; 6] {
     let pressed = |button| pad.is_pressed(button);
     let trigger = |button| pad.button_data(button).map_or(0.0, |data| data.value());
@@ -10,7 +9,6 @@ pub fn read(pad: &Gamepad) -> [i32; 6] {
     } else {
         1.0
     };
-    // 中立付近の揺れを除き、CCTLが受け取る±1000の整数へ変換する。
     let scaled_input = |value: f32| {
         if value.abs() < 0.1 {
             0

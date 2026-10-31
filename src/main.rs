@@ -1,4 +1,3 @@
-//! DualSenseの値を20msごとにCCTLへ送る。
 mod pad;
 use gilrs::Gilrs;
 use std::{
@@ -39,7 +38,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let [r, theta, z, rotate, fold, grip] = pad::read(&gamepad);
         writeln!(port, "{r} {theta} {z} {rotate} {fold} {grip}")?;
-        // 入力取得と送信に使った時間を差し引き、約20ms周期にする。
         std::thread::sleep(SEND_INTERVAL.saturating_sub(started.elapsed()));
     }
 }

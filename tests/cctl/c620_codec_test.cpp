@@ -115,7 +115,6 @@ TEST_CASE("指令は ESC ID に対応するスロットへ書かれる") {
 
 TEST_CASE("半回転ちょうどの移動は前進として扱われる") {
     // 1サンプルで半回転を超えると方向を区別できない。
-    // 0から半回転ちょうど進んだ場合は、正の差分をそのまま使う。
     MultiTurnCounter counter;
     counter.update(0);
     counter.update(COUNTS_PER_REV / 2);
@@ -124,7 +123,6 @@ TEST_CASE("半回転ちょうどの移動は前進として扱われる") {
 }
 
 TEST_CASE("生値と電流は往復する") {
-    // 指令生値とmAを相互に変換し、往復時の丸め誤差を確認する。
     CHECK(rawToCurrent(16384) == 20000);
     CHECK(rawToCurrent(-16384) == -20000);
     CHECK(rawToCurrent(0) == 0);
@@ -152,7 +150,6 @@ TEST_CASE("5..8 のスロットは 1..4 と同じ並び") {
 }
 
 TEST_CASE("指令フレームは 4 台分を保持する") {
-    // 1 台ずつ別フレームで送ると、後のフレームが他台を 0 で上書きしてしまう。
     CommandFrame frame(COMMAND_ID_1_TO_4);
     frame.clear();
 

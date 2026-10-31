@@ -42,7 +42,6 @@ TEST_CASE("WRITE パケットはパラメータを載せる") {
     CHECK(packet[5] == reg::TORQUE_ENABLE);
     CHECK(packet[6] == 0x01);
 
-    // チェックサムは ID から最後のパラメータまでを対象にする。
     CHECK(packet[7] == checksum(&packet[2], length - 3));
 }
 

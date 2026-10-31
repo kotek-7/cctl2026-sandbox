@@ -3,13 +3,11 @@
 #include <cstddef>
 #include <cstdint>
 
-// C620 (M3508 用 ESC) のフレーム符号化・復号と、多回転角の追跡。
 namespace domain::c620 {
 
 // C620 の角度分解能。生角度は 0..8191 で 1 回転する。
 constexpr int32_t COUNTS_PER_REV = 8192;
 
-// C620 が返すフィードバックフレームの内容。
 struct Feedback {
     uint16_t raw_angle; // 0..8191
     int16_t rpm;

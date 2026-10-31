@@ -1,8 +1,9 @@
 #pragma once
 #include <cstdint>
 
-// 配列の順序は r / θ / z。機体座標の単位は mm / deg / mm。
-// モータ座標の単位は rad / deg / deg。
+// 配列は r, θ, z の順。機体の移動量は r・z がmm、θが度。
+// native_per_unitは移動量1単位あたりのモータ回転角（rはrad、θ・zは度）。
+// 負の値は、機体の正方向とモータの正回転が逆であることを表す。
 namespace config {
 constexpr float native_per_unit[3] = {-0.04f, 132.02206f, -96.016f};
 constexpr float origin[3] = {570, 0, 0};
@@ -11,6 +12,7 @@ constexpr float minimum[3] = {0, 0, 0};
 constexpr float maximum[3] = {570, 0, 315};
 constexpr float speed[3] = {600, 120, 200};
 constexpr float ramp_seconds = 0.2f;
+// 位置目標と実測位置の差を、最高速度で0.1秒動く距離以内に収める。
 constexpr float target_lead_seconds = 0.1f;
 constexpr float contact_direction[3] = {1, 0, -1};
 constexpr uint32_t timeout_ms = 250;

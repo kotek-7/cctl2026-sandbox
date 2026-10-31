@@ -32,7 +32,6 @@ float measured(unsigned i) {
 void motorsBegin() {
     if (!bus.begin())
         Error_Handler();
-    // 出力停止中にCSP位置モードと上限値を設定し、絶対位置の返信を要求する。
     r.disable();
     HAL_Delay(50);
     r.setRunMode(El05Motor::RunMode::PositionCsp);
@@ -84,7 +83,7 @@ bool motorsReady() {
            z.temperature() < 80;
 }
 
-// 出力の切替時に古い移動目標を捨てる。原点のoffset・referencedは保持する。
+// 出力切替時の目標を実測に合わせる。原点は維持する。
 static void holdPosition() {
     for (unsigned i = 0; i < 3; ++i) {
         axes[i].target = measured(i);
@@ -96,14 +95,14 @@ static void holdPosition() {
         r.setLocRef(axes[0].target);
 }
 
-// 他軸の応答を待たず、位置情報が有効な軸から原点を登録する。
+// 原点登録はrとzで別々に判定する。片方のモータが未接続でも、もう片方は登録できる。
 void motorsReference(bool r_contact, bool z_contact) {
     const auto now = HAL_GetTick();
     if (feedback_received[0] && now - last_feedback[0] <= config::feedback_ms && r.positionReady())
         referenceAxis(axes[0], 0, measured(0), r_contact);
     if (feedback_received[2] && now - last_feedback[2] <= config::feedback_ms)
         referenceAxis(axes[2], 2, measured(2), z_contact);
-    // 原点取得で変更した位置目標を、次の電流制御より前に渡す。
+    // 原点登録で目標を変更したら、次の電流計算からその目標を使う。
     theta.setTargetMotorDeg(axes[1].target);
     z.setTargetMotorDeg(axes[2].target);
 }
@@ -132,7 +131,6 @@ void motorsMove(const int input[3], float dt, bool r_contact, bool z_contact) {
 
 void motorsUpdate(uint32_t now) {
     static uint32_t current_at = 0, position_at = 0;
-    // C620はID 0x200の各スロットへ電流を送る。出力無効時の電流は0。
     if (now - current_at >= 1) {
         uint8_t data[8]{};
         domain::c620::writeCommandSlot(data, config::theta_id, theta.commandRaw());
@@ -140,7 +138,7 @@ void motorsUpdate(uint32_t now) {
         bus.sendStd(0x200, data, 8);
         current_at = now;
     }
-    // EL05は位置目標を送り、MECH_POSの定期読出しで周回数と最終応答時刻を更新する。
+    // MECH_POSを定期的に読み、角度の折返し回数を補正する。返信は通信断の判定にも使う。
     if (now - position_at >= 20) {
         if (enabled)
             r.setLocRef(axes[0].target);

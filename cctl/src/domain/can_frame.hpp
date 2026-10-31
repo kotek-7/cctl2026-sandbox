@@ -4,7 +4,6 @@
 
 namespace domain {
 
-// HALに依存しないCAN受信フレーム。
 struct CanFrame {
     uint32_t id = 0;
     bool extended = false;

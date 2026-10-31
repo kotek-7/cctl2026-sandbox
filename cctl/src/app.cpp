@@ -6,7 +6,6 @@
 #include <algorithm>
 
 namespace {
-// USB割込みから受け取った行をloopで解析し、機体を操作する。
 volatile char received_line[80];
 volatile bool line_ready = false;
 int input[6]{};
@@ -15,7 +14,7 @@ bool input_received = false;
 
 void readInput() {
     char line[80];
-    // コピー中にUSB割込みが行を書き換えないよう、受け渡し部分だけ割込みを止める。
+    // USB割込みとの競合を防ぐ。割込み禁止区間はコピー中だけ。
     __disable_irq();
     const bool ready = line_ready;
     if (ready) {
@@ -26,7 +25,6 @@ void readInput() {
     __enable_irq();
     if (!ready)
         return;
-    // 不正な行では入力値も受信時刻も更新しない。
     int values[6];
     if (!parseInput(line, values))
         return;
@@ -68,7 +66,7 @@ extern "C" void loop() {
     const uint32_t now = HAL_GetTick();
     const bool r_contact = HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET;
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
-    // 接点はLowでON。原点はPC入力の有無にかかわらず、軸の位置が有効なら登録する。
+    // 接点はLowでON。PC未接続でも原点を登録する。
     motorsReference(r_contact, z_contact);
     const bool enabled = outputsEnabled(input_received, last_input, now, motorsReady());
     motorsEnable(enabled);

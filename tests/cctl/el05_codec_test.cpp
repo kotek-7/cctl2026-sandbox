@@ -22,7 +22,6 @@ TEST_CASE("拡張IDは 29bit に収まる") {
 }
 
 TEST_CASE("通信種別の上位ビットは切り捨てる") {
-    // 5bit を超える値を渡しても他のフィールドを壊さない。
     const uint32_t id = buildCanId(0x3F, 0x00, 0x10);
     CHECK(commType(id) == 0x1F);
     CHECK(targetId(id) == 0x10);

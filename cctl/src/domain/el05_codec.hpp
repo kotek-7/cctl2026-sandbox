@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-// RobStride EL05 の拡張ID・パラメータ定義とフィードバック復号。
 // 参照資料: robstride_el05_user_manual_260713.pdf（本リポジトリには同梱しない）
 namespace domain::el05 {
 
@@ -90,9 +89,7 @@ Feedback decodeFeedback(uint32_t ext_id, const uint8_t data[8]);
 // パラメータ書込のペイロード（Byte0-1 = index, Byte4-7 = 値）。
 void encodeParamFloat(uint16_t param, float value, uint8_t out[8]);
 void encodeParamU8(uint16_t param, uint8_t value, uint8_t out[8]);
-// パラメータ読出の要求ペイロード。
 void encodeParamRequest(uint16_t param, uint8_t out[8]);
-// 保存フレームのペイロードは固定列。
 void encodeSave(uint8_t out[8]);
 
 uint16_t paramReplyIndex(const uint8_t data[8]);

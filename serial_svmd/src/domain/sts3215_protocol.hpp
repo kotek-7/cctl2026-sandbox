@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-// Feetech STS プロトコルのパケット組立・検証。
 namespace domain::sts3215 {
 
 constexpr uint8_t HEADER = 0xFF;
@@ -27,7 +26,6 @@ constexpr std::size_t PACKET_OVERHEAD = 6;
 constexpr std::size_t MAX_PACKET_SIZE = MAX_TX_PARAMETERS + PACKET_OVERHEAD;
 constexpr std::size_t MAX_SYNC_PARAMETERS = 2 + (MAX_SYNC_TARGETS * (TARGET_DATA_LENGTH + 1));
 
-// レジスタアドレス。
 namespace reg {
 constexpr uint8_t ID = 5;
 constexpr uint8_t BAUD_RATE = 6;
@@ -39,7 +37,6 @@ constexpr uint8_t GOAL_SPEED = 46;
 constexpr uint8_t PRESENT_POSITION = 56;
 } // namespace reg
 
-// 加速度・目標位置・目標時間・目標速度をまとめた指令値。
 // アドレス41から連続する4レジスタに対応する。
 struct Target {
     uint8_t id;

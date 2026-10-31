@@ -4,7 +4,7 @@
 #include <cstring>
 extern "C" UART_HandleTypeDef huart1;
 namespace {
-// SYNC_WRITEならステータス応答が不要。対象は固定IDの1台。
+// 1台への書込みにも、応答を返さないSYNC_WRITEを使う。
 void write(uint8_t address, const uint8_t *data, uint8_t length) {
     uint8_t parameters[10] = {address, length, 1};
     std::memcpy(parameters + 3, data, length);

@@ -23,7 +23,7 @@ int16_t M3508Motor::commandRaw() {
     if (!enabled_ || !angle_.hasReference())
         return 0;
     const float dt = timer_.update(HAL_GetTick());
-    // 二段の制御: モータ角度の誤差 → 回転数目標 → 電流[mA] → C620指令値。
+    // まず角度のずれから必要な回転数を求め、次に回転数のずれから電流を求める。
     const float rpm = position_pid_.update(target_, angle_.degrees(), dt);
     const float current = velocity_pid_.update(rpm, feedback_.rpm, dt);
     return domain::c620::currentToRaw(static_cast<int32_t>(current));

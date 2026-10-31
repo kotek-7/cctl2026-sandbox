@@ -59,7 +59,8 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
         const float wrapped = decoded.position_rad;
         if (!has_wrapped_position_) {
             if (position_ready_) {
-                // 周回数を加えて、MECH_POSに最も近い位置に合わせる。
+                // 通常の返信だけでは折返し回数が分からない。
+                // 別途読んだMECH_POSに近くなるよう、折返し幅の整数倍を加える。
                 position_rad_ =
                     wrapped + std::round((position_rad_ - wrapped) / POSITION_SPAN) * POSITION_SPAN;
             } else {
@@ -88,7 +89,8 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
         const float value = codec::paramReplyFloat(data);
         if (index == codec::param::MECH_POS && std::isfinite(value)) {
             if (has_wrapped_position_) {
-                // MECH_POSとは取得時刻が異なるため、位置を置き換えず周回数だけ補正する。
+                // MECH_POSは通常の返信と測定時刻が違うため、そのまま位置を置き換えると
+                // 角度が急に変わる。折返し回数のずれだけを直す。
                 position_rad_ +=
                     std::round((value - position_rad_) / POSITION_SPAN) * POSITION_SPAN;
             } else {
@@ -97,7 +99,7 @@ bool El05Motor::onFeedback(uint32_t ext_id, const uint8_t data[8]) {
             position_ready_ = true;
             feedback_.position_rad = position_rad_;
         }
-        // パラメータ応答は通常の位置フィードバックと区別してfalseを返す。
+        // trueは通常の位置返信に限る。MECH_POSの受信時刻はmotorsReceiveで更新する。
         return false;
     }
     default:

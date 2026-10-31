@@ -5,7 +5,6 @@
 using domain::Pid;
 
 TEST_CASE("dt が 0 なら P 項だけが出る") {
-    // 初回は経過時間を0とし、積分・微分を更新しない。
     Pid pid(2.0f, 100.0f, 100.0f, 1000.0f);
 
     CHECK(pid.update(1.0f, 0.0f, 0.0f) == doctest::Approx(2.0f));
@@ -21,10 +20,8 @@ TEST_CASE("積分項は誤差と時間の積を溜める") {
 TEST_CASE("微分項は誤差の変化率に比例する") {
     Pid pid(0.0f, 0.0f, 2.0f, 100.0f);
 
-    // 1 回目で誤差 0 を記録し、2 回目で 0 → 1 の変化を見る。
     pid.update(0.0f, 0.0f, 0.0f);
     CHECK(pid.update(1.0f, 0.0f, 0.1f) == doctest::Approx(20.0f));
-    // 誤差が変わらなければ微分は 0。
     CHECK(pid.update(1.0f, 0.0f, 0.1f) == doctest::Approx(0.0f));
 }
 
@@ -41,7 +38,6 @@ TEST_CASE("飽和して誤差が同方向なら積分を捨てる") {
 
     CHECK(pid.update(1.0f, 0.0f, 1.0f) == doctest::Approx(1.0f));
 
-    // 積分が捨てられているので、目標に追いついた直後の出力は 0 に戻る。
     CHECK(pid.update(0.0f, 0.0f, 1.0f) == doctest::Approx(0.0f));
 }
 
@@ -49,7 +45,6 @@ TEST_CASE("飽和していなければ積分は保持される") {
     Pid pid(0.0f, 1.0f, 0.0f, 100.0f);
 
     pid.update(1.0f, 0.0f, 1.0f);
-    // 誤差が 0 になっても、溜めた積分は残る。
     CHECK(pid.update(0.0f, 0.0f, 1.0f) == doctest::Approx(1.0f));
 }
 
@@ -59,7 +54,6 @@ TEST_CASE("reset で内部状態が消える") {
 
     pid.reset();
 
-    // reset前の積分値を引き継がず、今回の1.0だけを出力する。
     CHECK(pid.update(1.0f, 0.0f, 1.0f) == doctest::Approx(1.0f));
 }
 
@@ -71,7 +65,6 @@ TEST_CASE("ゲインは後から差し替えられる") {
 }
 
 TEST_CASE("出力制限を実行時に変えられる") {
-    // 出力上限を10から50へ変更すると、飽和時の出力も50になる。
     domain::Pid pid(100.0f, 0.0f, 0.0f, 10.0f);
     CHECK(pid.update(100.0f, 0.0f, 0.01f) == doctest::Approx(10.0f));
     pid.setOutLimit(50.0f);

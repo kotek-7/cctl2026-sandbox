@@ -2,7 +2,6 @@
 
 namespace domain {
 
-// 経過時間 dt は呼び出し側が渡す。
 // 出力を±out_limitに制限する。
 // 出力が飽和し、誤差がさらに飽和を強める方向なら、積分値をリセットする。
 class Pid {
@@ -25,7 +24,6 @@ class Pid {
 
     void reset();
 
-    // 目標値と計測値から出力を計算し、内部状態を更新する。
     // dt_s <= 0 では積分を加算せず、微分項を0とする。蓄積済みの積分項は使う。
     float update(float target, float measured, float dt_s);
 

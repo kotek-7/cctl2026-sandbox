@@ -4,8 +4,8 @@
 
 namespace domain {
 
-// ミリ秒のtickから経過秒を求める。初回は0を返す。
-// 符号なしの差分を使い、32bitのtickが0に戻る場合も扱う。
+// 前回の呼出しから何秒たったかを返す。入力は起動後のミリ秒、初回の結果は0。
+// uint32_tの引き算なので、ミリ秒カウンタが上限を超えて0に戻っても差を求められる。
 class DeltaTimer {
   public:
     float update(uint32_t now_ms);

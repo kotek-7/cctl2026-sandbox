@@ -84,7 +84,6 @@ void encodeParamRequest(uint16_t param, uint8_t out[8]) {
 }
 
 void encodeSave(uint8_t out[8]) {
-    // マニュアル指定の固定列。
     for (uint8_t i = 0; i < 8; ++i) {
         out[i] = static_cast<uint8_t>(i + 1);
     }

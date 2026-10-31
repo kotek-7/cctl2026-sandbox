@@ -2,8 +2,8 @@
 #include "config.hpp"
 #include <cstdlib>
 
-// r / θ / z / 回転 / 畳み / 把持。改行を除いた完全な1行を読む。
-// false時はvaluesが途中まで書かれるため、呼び出し側は採用しない。
+// 改行を除いた1行を、r / θ / z / 回転 / 畳み / 把持の順に読む。
+// 途中で不正な値を見つけるとfalseを返す。その場合はvalues全体を使わない。
 inline bool parseInput(const char *text, int values[6]) {
     for (unsigned i = 0; i < 6; ++i) {
         char *end;
@@ -22,7 +22,7 @@ inline bool parseInput(const char *text, int values[6]) {
     return *text == '\0' && valid_fold && valid_grip;
 }
 
-// 未受信の初期値を有効入力と区別する。符号なしの時刻差でtickの周回を扱う。
+// 起動後のミリ秒カウンタが上限を超えて0に戻る場合も、符号なしの引き算で扱う。
 inline bool outputsEnabled(bool input_received, uint32_t last_input, uint32_t now,
                            bool motors_ready) {
     return input_received && now - last_input <= config::timeout_ms && motors_ready;

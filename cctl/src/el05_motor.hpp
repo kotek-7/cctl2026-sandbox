@@ -2,7 +2,8 @@
 #include "can_bus.hpp"
 #include "domain/el05_codec.hpp"
 
-// EL05の位置モード。周期位置の折返しを補正して多回転位置を求める。
+// EL05の位置制御。返信の角度が上限から下限へ戻った分を足し、
+// 複数回転しても連続した角度として扱う。
 class El05Motor {
   public:
     using RunMode = domain::el05::RunMode;

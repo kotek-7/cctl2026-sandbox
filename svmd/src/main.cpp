@@ -21,7 +21,7 @@ void loop() {
         const auto msg = CAN.read();
         if (msg.isExtendedId() || msg.id != COMMAND_ID || msg.data_length != 8)
             continue;
-        // 1本でも範囲外ならフレーム全体を捨てるため、4本を検証してから反映する。
+        // 不正なフレームを一部だけ反映しないよう、4本とも検証する。
         // 各幅は上位byteが先のµs値。0は解除、それ以外は400〜1500。
         uint16_t pulse[4];
         bool valid = true;
