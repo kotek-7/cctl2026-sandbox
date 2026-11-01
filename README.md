@@ -19,7 +19,7 @@ cargo run --release --locked -- /dev/serial/by-id/対象CCTL
 hostとCCTLは同じ版を使用する。実機動作は未確認。
 
 DualSenseを接続してから、シリアルポートへのアクセス権があるユーザーでPCプログラムを起動する。
-STS3215はあらかじめID=1、1Mbps、位置モードに設定しておく。
+STS3215はあらかじめID=1、115200bps、位置モードに設定しておく。
 
 ## FWの書込み
 

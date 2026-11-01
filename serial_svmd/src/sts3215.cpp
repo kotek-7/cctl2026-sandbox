@@ -16,7 +16,7 @@ void write(uint8_t address, const uint8_t *data, uint8_t length) {
 } // namespace
 // 起動時に回転サーボとの通信を準備する。CCTLの指令を受けるまでは出力を止めておく。
 void servoBegin() {
-    huart1.Init.BaudRate = 1000000;
+    huart1.Init.BaudRate = 115200;
     huart1.Init.OverSampling = UART_OVERSAMPLING_8;
     if (HAL_UART_Init(&huart1) != HAL_OK)
         Error_Handler();
