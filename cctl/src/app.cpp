@@ -13,10 +13,10 @@ int input[6]{};
 uint32_t last_input = 0;
 bool input_received = false;
 
-// USBで受信した最新の行を操作入力にする。不正な行では入力も受信時刻も更新しない。
+// PCから届いた最新の有効な指令を操作入力にする。
 void readInput() {
     char line[80];
-    // USB割込みとの競合を防ぐ。割込み禁止区間はコピー中だけ。
+    // 受信割込みが書き換えるデータをコピーする間は割込みを止める。
     __disable_irq();
     const bool ready = line_ready;
     if (ready) {
@@ -36,8 +36,7 @@ void readInput() {
 }
 } // namespace
 
-// USB割込みから制御ループへ指令を渡す。分割して届くデータを、改行までそろえて引き渡す。
-// 長すぎる行は、末尾を別の指令と誤認しないよう改行まで捨てる。
+// USB受信を行単位にまとめ、制御ループへ渡す。
 extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
     static char line[80];
     static unsigned used = 0;
@@ -58,26 +57,25 @@ extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
             overflow = true;
     }
 }
-// LCDを初期化し、軸モータとEEへの通信・制御を準備する。
+// LCDとモータ・サーボ基板への通信を初期化する。
 extern "C" void setup() {
     statusBegin();
     motorsBegin();
     eeBegin();
 }
-// PC入力とモータ返信を受け取り、原点登録と軸・EE・表示の周期処理を進める。
+// 入力の受信、原点登録、軸・EE・表示の周期更新を行う。
 extern "C" void loop() {
     motorsReceive();
     readInput();
     const uint32_t now = HAL_GetTick();
     const bool r_contact = HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET;
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
-    // 接点はLowでON。PC未接続でも原点を登録する。
+    // スイッチはLowでON。
     const auto status = motorsStatus(now);
     motorsReference(r_contact, z_contact, status);
     const bool fresh = inputFresh(input_received, last_input, now);
     static uint32_t motion_at = 0, current_at = 0, status_at = 0;
     if (now - motion_at >= 20) {
-        // 軸の加減速とEEの姿勢を20ms分ずつ更新する。
         constexpr float dt = 0.02f;
         motion_at = now;
         expireInput(fresh, input);

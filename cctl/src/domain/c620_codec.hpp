@@ -11,7 +11,7 @@ struct Feedback {
 };
 Feedback decodeFeedback(const uint8_t data[8]);
 
-// zの最初の角度を0とし、1回転ごとの折返しを補正して回転量を数える。
+// zのエンコーダの折返しを補正し、初回返信からの回転量を保持する。
 class MultiTurnCounter {
   public:
     void update(uint16_t raw_angle);

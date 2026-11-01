@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-// LCDとPCへ返す、各軸に200ms以内の返信があるかと、rの異常コード。
+// 表示用のモータ返信状態とrの異常コード。
 struct MotorStatus {
     bool feedback_ok[3];
     uint8_t r_fault;

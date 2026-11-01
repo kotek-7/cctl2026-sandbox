@@ -16,7 +16,7 @@ bool lcdCommand(uint8_t value) {
     return HAL_I2C_Master_Transmit(&hi2c1, lcd_address, data, sizeof(data), 2) == HAL_OK;
 }
 
-// 変化した行だけLCDへ送る。送信に失敗した行は次回も送る。
+// LCDの表示を、変化した行だけ書き換える。
 bool lcdLine(unsigned row, const char *text) {
     static uint8_t displayed[2][16]{};
     uint8_t data[17];
@@ -33,7 +33,7 @@ bool lcdLine(unsigned row, const char *text) {
 }
 } // namespace
 
-// 基板上のAQM1602を、2行の状態表示に使えるよう初期化する。
+// 状態表示用のLCDを初期化する。
 void statusBegin() {
     HAL_Delay(40);
     for (uint8_t command : {0x38, 0x39, 0x14, 0x7f, 0x5e, 0x6c})
@@ -46,7 +46,7 @@ void statusBegin() {
     lcdCommand(0x06);
 }
 
-// 操縦者が通信途絶とrの異常を確認できるよう、LCDとPCへ現在の状態を送る。
+// 通信状態とrの異常コードをLCDとPCへ送る。
 void statusUpdate(bool input_received, bool input_fresh, const MotorStatus &motors) {
     const char *pc = !input_received ? "WAIT" : input_fresh ? "OK" : "LOST";
     const char *r = motors.feedback_ok[0] ? "OK" : "NO";
@@ -62,8 +62,8 @@ void statusUpdate(bool input_received, bool input_fresh, const MotorStatus &moto
     const int length = std::snprintf(
         message, sizeof(message), "PC=%s R_FB=%s THETA_FB=%s Z_FB=%s R_FAULT=0x%02X LCD=%s\n", pc,
         r, theta, z, unsigned(motors.r_fault), lcd_ok ? "OK" : "ERROR");
-    // USB送信完了までは同じバッファを保持する。前の送信中なら次回の状態を送る。
-    // USB切断割込みでCDCの状態が破棄される間にアクセスしない。
+    // USB送信完了までバッファを保持する。
+    // CDCへのアクセス中に切断割込みが入るのを防ぐ。
     __disable_irq();
     const auto *cdc = static_cast<USBD_CDC_HandleTypeDef *>(hUsbDeviceFS.pClassData);
     if (hUsbDeviceFS.dev_state != USBD_STATE_CONFIGURED || !cdc || cdc->TxState != 0) {

@@ -8,7 +8,7 @@ use std::{
 
 const SEND_INTERVAL: Duration = Duration::from_millis(20);
 
-// CCTLの状態を改行まで受け取り、前回と変わった行だけ端末に表示する。
+// CCTLの状態を端末に表示する。同じ状態の繰返しは省く。
 fn read_status(
     port: &mut dyn serialport::SerialPort,
     line: &mut String,
@@ -35,7 +35,7 @@ fn read_status(
     Ok(())
 }
 
-// PC側の操縦プログラム。入力を20msごとに送り、CCTLから返る状態を表示する。
+// パッド入力をCCTLへ送り、機体の状態を端末に表示する。
 fn main() -> Result<(), Box<dyn Error>> {
     let device = std::env::args()
         .nth(1)
@@ -60,7 +60,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut previous_status = String::new();
     loop {
         let started = Instant::now();
-        // gilrs内部の入力状態を最新にしてから、全軸をまとめて読む。
         while pads.next_event().is_some() {}
         let gamepad = pads.gamepad(pad_id);
         if !gamepad.is_connected() {
@@ -78,7 +77,7 @@ mod tests {
     use super::*;
     use serialport::SerialPort;
 
-    // PTYの転送完了を待ち、OSの配送時刻にテスト結果が左右されないようにする。
+    // 状態受信テストで、PTYへの転送完了を待つ。
     fn wait_for_bytes(port: &serialport::TTYPort, count: u32) {
         let deadline = Instant::now() + Duration::from_secs(1);
         while port.bytes_to_read().unwrap() < count {

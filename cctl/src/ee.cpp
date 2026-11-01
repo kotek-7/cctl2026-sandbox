@@ -7,17 +7,16 @@ extern "C" FDCAN_HandleTypeDef hfdcan2;
 namespace {
 CanBus bus(&hfdcan2);
 // fold_pulseとgrip_pulseはPWM幅（µs）。rotation_angleは初期目標からの回転角（度）。
-// 出力を切ってもこの値を残し、再開時に同じ姿勢を指令する。
 float fold_pulse = 500;
 float grip_pulse = 500;
 float rotation_angle = 0;
 } // namespace
-// EEを動かす2枚のサーボ基板との通信を準備する。失敗したらError_Handlerを呼ぶ。
+// EEのサーボ基板とのCAN通信を開始する。
 void eeBegin() {
     if (!bus.begin())
         Error_Handler();
 }
-// 入力からEEの姿勢目標を更新してサーボ基板へ送る。入力が0なら前回の目標を保つ。
+// 操作入力からEEの姿勢目標を更新し、サーボ基板へ送る。
 void eeUpdate(bool enabled, int rotate, int fold, int grip, float dt) {
     if (enabled) {
         fold_pulse = std::clamp(fold_pulse + fold * config::fold_speed * dt, config::fold_min,

@@ -17,7 +17,7 @@ uint32_t last_feedback[3]{};
 bool feedback_received[3]{}, r_enabled = false;
 } // namespace
 
-// rを速度モードに設定する。起動中は出力を切り、速度指令も0にする。
+// モータ用CANを開始し、rの速度制御を設定する。
 void motorsBegin() {
     if (!bus.begin())
         Error_Handler();
@@ -34,7 +34,7 @@ void motorsBegin() {
     HAL_Delay(20);
 }
 
-// 制御用の実測値と、r自身が報告した異常を受け取る。
+// モータの返信から実測値と異常コードを更新する。
 void motorsReceive() {
     domain::CanFrame frame;
     while (bus.receive(frame)) {
@@ -58,7 +58,7 @@ void motorsReceive() {
     }
 }
 
-// 返信途絶は表示に使う。出力開始や停止の条件にはしない。
+// LCDとPCへ表示するモータの通信状態をまとめる。
 MotorStatus motorsStatus(uint32_t now) {
     MotorStatus status{{}, r.faultBits()};
     for (unsigned i = 0; i < 3; ++i)
@@ -67,7 +67,7 @@ MotorStatus motorsStatus(uint32_t now) {
     return status;
 }
 
-// 200ms以内に位置を受信した軸の原点を、最初のスイッチ接触で登録する。
+// 位置を受信できている軸の原点を、最初のスイッチ接触で登録する。
 void motorsReference(bool r_contact, bool z_contact, const MotorStatus &status) {
     if (status.feedback_ok[0])
         referenceAxis(axes[0], 0, r.position(), r_contact);
@@ -75,7 +75,7 @@ void motorsReference(bool r_contact, bool z_contact, const MotorStatus &status) 
         referenceAxis(axes[2], 2, z_angle.degrees(), z_contact);
 }
 
-// 20msごとに軸の速度を更新し、rへ送る。rの異常中は停止とリセットを要求する。
+// 3軸の速度指令を更新し、rへ運転・停止・異常解除の指令を送る。
 void motorsStep(bool active, const int input[3], float dt, bool r_contact, bool z_contact) {
     const bool run_r = active && r.faultBits() == 0;
     if (run_r && !r_enabled) {
@@ -97,7 +97,7 @@ void motorsStep(bool active, const int input[3], float dt, bool r_contact, bool 
         r.disable(r.faultBits() != 0);
 }
 
-// θ・zの速度誤差を電流に変えて送る。初回入力前は0電流を送る。
+// θ・zの速度制御に必要な電流をC620へ送る。
 void motorsCurrent(bool active) {
     uint8_t data[8]{};
     if (active) {

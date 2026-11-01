@@ -4,7 +4,7 @@
 
 class CanBus {
   public:
-    // この通信口をモータ用またはサーボ基板用のCANに結び付ける。通信開始はbeginが行う。
+    // 使用するCANポートを指定する。
     explicit CanBus(FDCAN_HandleTypeDef *handle) : handle_(handle) {}
     bool begin();
     bool sendStd(uint16_t id, const uint8_t *data, uint8_t length);
