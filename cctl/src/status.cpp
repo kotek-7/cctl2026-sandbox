@@ -16,15 +16,20 @@ bool lcdCommand(uint8_t value) {
     return HAL_I2C_Master_Transmit(&hi2c1, lcd_address, data, sizeof(data), 2) == HAL_OK;
 }
 
-// LCDの1行を16文字で上書きする。前の長い表示が残らないよう空白で埋める。
+// 変化した行だけLCDへ送る。送信に失敗した行は次回も送る。
 bool lcdLine(unsigned row, const char *text) {
-    if (!lcdCommand(row == 0 ? 0x80 : 0xc0))
-        return false;
+    static uint8_t displayed[2][16]{};
     uint8_t data[17];
     data[0] = 0x40;
     std::fill(data + 1, data + 17, ' ');
     std::memcpy(data + 1, text, std::min(std::strlen(text), size_t{16}));
-    return HAL_I2C_Master_Transmit(&hi2c1, lcd_address, data, sizeof(data), 3) == HAL_OK;
+    if (std::memcmp(displayed[row], data + 1, 16) == 0)
+        return true;
+    if (!lcdCommand(row == 0 ? 0x80 : 0xc0) ||
+        HAL_I2C_Master_Transmit(&hi2c1, lcd_address, data, sizeof(data), 3) != HAL_OK)
+        return false;
+    std::memcpy(displayed[row], data + 1, 16);
+    return true;
 }
 } // namespace
 
@@ -53,6 +58,10 @@ void statusUpdate(bool input_received, bool input_fresh, const MotorStatus &moto
     std::snprintf(line, sizeof(line), "R:%s T:%s Z:%s", r, theta, z);
     const bool lcd_ok = first_line && lcdLine(1, line);
 
+    char message[128];
+    const int length = std::snprintf(
+        message, sizeof(message), "PC=%s R_FB=%s THETA_FB=%s Z_FB=%s R_FAULT=0x%02X LCD=%s\n", pc,
+        r, theta, z, unsigned(motors.r_fault), lcd_ok ? "OK" : "ERROR");
     // USB送信完了までは同じバッファを保持する。前の送信中なら次回の状態を送る。
     // USB切断割込みでCDCの状態が破棄される間にアクセスしない。
     __disable_irq();
@@ -61,10 +70,8 @@ void statusUpdate(bool input_received, bool input_fresh, const MotorStatus &moto
         __enable_irq();
         return;
     }
-    static char message[128];
-    const int length = std::snprintf(
-        message, sizeof(message), "PC=%s R_FB=%s THETA_FB=%s Z_FB=%s R_FAULT=0x%02X LCD=%s\n", pc,
-        r, theta, z, unsigned(motors.r_fault), lcd_ok ? "OK" : "ERROR");
-    CDC_Transmit_FS(reinterpret_cast<uint8_t *>(message), static_cast<uint16_t>(length));
+    static char sending[128];
+    std::memcpy(sending, message, length);
+    CDC_Transmit_FS(reinterpret_cast<uint8_t *>(sending), static_cast<uint16_t>(length));
     __enable_irq();
 }

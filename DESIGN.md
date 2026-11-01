@@ -119,7 +119,7 @@ SYNC_WRITEで目標を書き、その後トルクを指示する。通信は送�
 
 ## LCDとPCへの状態表示
 
-CCTLは250msごとにLCDとUSBへ現在の状態を出す。PCは受け取った行が変わったときだけ端末に表示する。
+CCTLは250msごとに状態を確認し、LCDは変わった行だけ書き換える。USBには現在の状態を送る。PCは受け取った行が変わったときだけ端末に表示する。
 
 ```text
 PC=OK R_FB=OK THETA_FB=NO Z_FB=OK R_FAULT=0x00 LCD=OK
@@ -128,7 +128,7 @@ PC=OK R_FB=OK THETA_FB=NO Z_FB=OK R_FAULT=0x00 LCD=OK
 - PC：WAITは初回入力前、OKは250ms以内に入力あり、LOSTは入力途絶。
 - 各軸のFB：OKは200ms以内に返信あり。NOは未受信または返信途絶。
 - R_FAULT：rの通常返信に含まれる6bitの異常コードを16進数で表示。0は報告なし。
-- LCD：直近のLCD書込みが成功したかを示す。
+- LCD：表示内容の書込みが成功したかを示す。失敗した行は次回も送る。内容が変わらない間は通信しないため、その間のLCD切断は検知しない。
 
 LCDの1行目は `PC:OK   RERR:00`、2行目は `R:OK T:NO Z:OK` の形式。Tはθ。
 LCDはI2C1のAQM1602、アドレス0x3E。初期化値は元基板の設定を使う。
