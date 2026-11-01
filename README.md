@@ -16,10 +16,25 @@ make build-svmd
 cargo run --release --locked -- /dev/serial/by-id/対象CCTL
 ```
 
-hostとCCTLは同じ版を使用する。基板への書込みは別途行う。実機動作は未確認。
+hostとCCTLは同じ版を使用する。実機動作は未確認。
 
 DualSenseを接続してから、シリアルポートへのアクセス権があるユーザーでPCプログラムを起動する。
 STS3215はあらかじめID=1、1Mbps、位置モードに設定しておく。
+
+## FWの書込み
+
+CCTL・SerialSVMDは対象基板のSWD端子にST-LINKを接続し、STM32CubeProgrammerの `STM32_Programmer_CLI` をPATHに通す。
+SVMD（UNO R4 Minima）はUSBで接続する。対象基板に対応するコマンドを実行する。
+
+```sh
+make flash-cctl
+make flash-serial-svmd
+make flash-svmd
+```
+
+各コマンドはビルド後に書き込む。STM32は書込み内容を検証してからリセットする。
+ST-LINKが複数ある場合は `STLINK_SN=シリアル番号`、SVMDのUSBポートを指定する場合は `UPLOAD_PORT=/dev/ttyACM0` を付ける。
+`STM32_PROGRAMMER=/path/to/STM32_Programmer_CLI` で実行ファイルも指定できる。
 
 ## 操作
 
