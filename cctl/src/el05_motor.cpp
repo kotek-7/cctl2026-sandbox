@@ -4,7 +4,7 @@ namespace {
 namespace codec = domain::el05;
 } // namespace
 
-// このEL05への指令に送受信先IDを付ける。各操作はこの関数を通してCANへ送る。
+// rのEL05へ、通信種別と送受信先IDを付けた指令を送る。
 bool El05Motor::sendFrame(uint8_t comm_type, const uint8_t data[8]) {
     return bus_.sendExt(codec::buildCanId(comm_type, host_id_, motor_id_), data, 8);
 }
@@ -22,7 +22,7 @@ bool El05Motor::disable(bool clear_fault) {
     return sendFrame(codec::comm::DISABLE, data);
 }
 
-// EL05の制御方式を選ぶ。この機体では起動時に速度モードを指定する。
+// 起動時にrのEL05を速度制御モードに設定する。
 bool El05Motor::setVelocityMode() {
     uint8_t data[8];
     codec::encodeParamU8(codec::param::RUN_MODE, 2, data);

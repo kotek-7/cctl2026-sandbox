@@ -8,7 +8,7 @@ constexpr int32_t CURRENT_SCALE_NUM = 16384;
 constexpr int32_t CURRENT_SCALE_DEN = 20000;
 } // namespace
 
-// C620の通信形式を、θ・zの制御で扱う実測値に変える。
+// C620の返信から、zの位置計算に使う角度とθ・zの速度制御に使うrpmを読む。
 Feedback decodeFeedback(const uint8_t data[8]) {
     Feedback fb = {};
     fb.raw_angle = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]);
@@ -16,7 +16,7 @@ Feedback decodeFeedback(const uint8_t data[8]) {
     return fb;
 }
 
-// 1回転ごとに戻るエンコーダ値を、接点原点と端点減速に使う連続した回転量として追跡する。
+// zの原点登録と端点減速に使う回転量を、エンコーダの折返しを補正して積算する。
 void MultiTurnCounter::update(uint16_t raw_angle) {
     if (!has_reference_) {
         last_raw_angle_ = raw_angle;
@@ -42,7 +42,7 @@ float MultiTurnCounter::degrees() const {
     return static_cast<float>(counts_) * 360.0f / static_cast<float>(COUNTS_PER_REV);
 }
 
-// P制御で決めた電流を、C620の電流指令に合わせる。入力はmA。
+// P制御で求めた電流[mA]を、C620へ送る整数値に換算する。
 int16_t currentToRaw(int32_t milli_amp) {
     return static_cast<int16_t>(milli_amp * CURRENT_SCALE_NUM / CURRENT_SCALE_DEN);
 }

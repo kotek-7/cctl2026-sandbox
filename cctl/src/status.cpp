@@ -33,7 +33,7 @@ bool lcdLine(unsigned row, const char *text) {
 }
 } // namespace
 
-// 基板上のAQM1602を初期化する。設定値は元基板の表示設定を使う。
+// 基板上のAQM1602を、2行の状態表示に使えるよう初期化する。
 void statusBegin() {
     HAL_Delay(40);
     for (uint8_t command : {0x38, 0x39, 0x14, 0x7f, 0x5e, 0x6c})
@@ -46,7 +46,7 @@ void statusBegin() {
     lcdCommand(0x06);
 }
 
-// 現在の通信状態とrの異常コードをLCDとUSBへ出す。停止や復旧の判断は行わない。
+// 操縦者が通信途絶とrの異常を確認できるよう、LCDとPCへ現在の状態を送る。
 void statusUpdate(bool input_received, bool input_fresh, const MotorStatus &motors) {
     const char *pc = !input_received ? "WAIT" : input_fresh ? "OK" : "LOST";
     const char *r = motors.feedback_ok[0] ? "OK" : "NO";

@@ -67,7 +67,7 @@ MotorStatus motorsStatus(uint32_t now) {
     return status;
 }
 
-// 新しい位置返信がある軸だけ、最初の接点で原点を登録する。
+// 200ms以内に位置を受信した軸の原点を、最初のスイッチ接触で登録する。
 void motorsReference(bool r_contact, bool z_contact, const MotorStatus &status) {
     if (status.feedback_ok[0])
         referenceAxis(axes[0], 0, r.position(), r_contact);

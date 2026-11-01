@@ -13,7 +13,7 @@ int input[6]{};
 uint32_t last_input = 0;
 bool input_received = false;
 
-// USB受信データを操縦に使う入力として受け入れる。不正な行では通信の有効期限も延ばさない。
+// USBで受信した最新の行を操作入力にする。不正な行では入力も受信時刻も更新しない。
 void readInput() {
     char line[80];
     // USB割込みとの競合を防ぐ。割込み禁止区間はコピー中だけ。
@@ -58,13 +58,13 @@ extern "C" void cctl_usbcdc_receive(const uint8_t *data, uint32_t length) {
             overflow = true;
     }
 }
-// CCTLの起動処理。軸モータとEEを、制御ループから指令できる状態にする。
+// LCDを初期化し、軸モータとEEへの通信・制御を準備する。
 extern "C" void setup() {
     statusBegin();
     motorsBegin();
     eeBegin();
 }
-// CCTLの制御ループ。原点登録、出力の許可、軸とEEの周期更新をここでまとめる。
+// PC入力とモータ返信を受け取り、原点登録と軸・EE・表示の周期処理を進める。
 extern "C" void loop() {
     motorsReceive();
     readInput();

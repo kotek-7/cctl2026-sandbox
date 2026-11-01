@@ -12,7 +12,7 @@ struct AxisMotion {
     float speed = 0;
 };
 
-// モータの角度と機体の位置を、最初の接点で対応付ける。以後はこの対応でr・zの可動範囲を決める。
+// r・zの原点を最初のスイッチ接触で決め、位置制限を有効にする。
 // indexは r=0 / θ=1 / z=2。measuredはモータから読んだ角度。
 inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool contact) {
     if (index == 1 || axis.referenced || !contact)
@@ -22,7 +22,7 @@ inline void referenceAxis(AxisMotion &axis, unsigned index, float measured, bool
     axis.referenced = true;
 }
 
-// 1軸の手動移動を計算する。操作入力から速度を求め、加減速・接点・可動範囲で動きを制限する。
+// パッド入力を軸の速度指令に変え、スイッチの押し込みと可動範囲からの逸脱を制限する。
 // inputは±1000、dtは秒。
 inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input, float dt,
                      bool contact) {
@@ -51,7 +51,7 @@ inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input
     axis.speed = speed;
 }
 
-// θ・zの速度誤差から電流[mA]を求める。積分状態は持たず、正負の電流上限だけを適用する。
+// θ・zの速度を追従させるためのP制御。速度誤差から求めた電流[mA]を±10Aに収める。
 inline int32_t motorCurrent(float target_rpm, float measured_rpm) {
     return static_cast<int32_t>(std::clamp(config::velocity_kp * (target_rpm - measured_rpm),
                                            -config::max_current_ma, config::max_current_ma));

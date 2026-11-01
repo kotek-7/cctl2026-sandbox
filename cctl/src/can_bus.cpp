@@ -23,11 +23,11 @@ bool CanBus::send(uint32_t id, uint32_t type, const uint8_t *data, uint8_t lengt
             return false;
     return HAL_FDCAN_AddMessageToTxFifoQ(handle_, &header, data) == HAL_OK;
 }
-// C620の電流指令とサーボ基板への指令に使う送信口。trueは送信待ちへの登録成功を表す。
+// C620とサーボ基板へ標準IDの指令を送る。trueは送信キューへの登録成功を表す。
 bool CanBus::sendStd(uint16_t id, const uint8_t *data, uint8_t length) {
     return send(id, FDCAN_STANDARD_ID, data, length);
 }
-// EL05への指令に使う送信口。trueは送信待ちへの登録成功を表す。
+// EL05へ拡張IDの指令を送る。trueは送信キューへの登録成功を表す。
 bool CanBus::sendExt(uint32_t id, const uint8_t *data, uint8_t length) {
     return send(id, FDCAN_EXTENDED_ID, data, length);
 }
