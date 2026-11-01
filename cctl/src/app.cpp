@@ -72,23 +72,24 @@ extern "C" void loop() {
     const bool r_contact = HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == GPIO_PIN_RESET;
     const bool z_contact = HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == GPIO_PIN_RESET;
     // 接点はLowでON。PC未接続でも原点を登録する。
-    motorsReference(r_contact, z_contact);
+    const auto status = motorsStatus(now);
+    motorsReference(r_contact, z_contact, status);
     const bool fresh = inputFresh(input_received, last_input, now);
-    expireInput(fresh, input);
-    motorsEnable(input_received);
-    static uint32_t motion_at = 0;
+    static uint32_t motion_at = 0, current_at = 0, status_at = 0;
     if (now - motion_at >= 20) {
         // 軸の加減速とEEの姿勢を20ms分ずつ更新する。
         constexpr float dt = 0.02f;
         motion_at = now;
-        if (input_received)
-            motorsMove(input, dt, r_contact, z_contact);
+        expireInput(fresh, input);
+        motorsStep(input_received, input, dt, r_contact, z_contact);
         eeUpdate(input_received, input[3], input[4], input[5], dt);
     }
-    motorsUpdate(now);
-    static uint32_t status_at = 0;
+    if (now - current_at >= 1) {
+        current_at = now;
+        motorsCurrent(input_received);
+    }
     if (now - status_at >= 250) {
         status_at = now;
-        statusUpdate(input_received, fresh, motorsStatus());
+        statusUpdate(input_received, fresh, status);
     }
 }

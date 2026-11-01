@@ -123,8 +123,8 @@ TEST_CASE("PC入力途絶と復帰で原点を取り直さない") {
     CHECK(axis.offset == offset);
 }
 
-TEST_CASE("0.2秒で最高速度へ達し入力を離すと速度0になる") {
-    for (unsigned i = 0; i < 3; ++i) {
+TEST_CASE("θ・zは0.2秒で最高速度へ達し入力を離すと速度0になる") {
+    for (unsigned i = 1; i < 3; ++i) {
         for (int sign : {-1, 1}) {
             AxisMotion axis;
             moveAxis(axis, i, 0, sign * 1000, 0.02f, false);
@@ -163,4 +163,20 @@ TEST_CASE("PC入力途絶では6操作を中立にし再受信した入力を使
     CHECK(parseInput("-1000 0 0 0 0 0", values));
     expireInput(inputFresh(true, 400, 400), values);
     CHECK(values[0] == -1000);
+}
+
+TEST_CASE("rはCCTLで加減速せず速度指令を渡す") {
+    AxisMotion axis;
+    moveAxis(axis, 0, 0, 1000, 0.02f, false);
+    CHECK(axis.speed == config::speed[0]);
+    moveAxis(axis, 0, 0, 0, 0.02f, false);
+    CHECK(axis.speed == 0);
+}
+
+TEST_CASE("θ・zの電流は速度誤差に比例し10A以内に収まる") {
+    CHECK(motorCurrent(100, 100) == 0);
+    CHECK(motorCurrent(100, 0) == 700);
+    CHECK(motorCurrent(0, 100) == -700);
+    CHECK(motorCurrent(10000, 0) == 10000);
+    CHECK(motorCurrent(-10000, 0) == -10000);
 }

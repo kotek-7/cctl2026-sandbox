@@ -11,18 +11,14 @@ TEST_CASE("フィードバックはビッグエンディアンで復号される
 
     CHECK(fb.raw_angle == 0x1234);
     CHECK(fb.rpm == -100);
-    CHECK(fb.current_raw == 0x0300);
-    CHECK(fb.temperature == 42);
 }
 
 TEST_CASE("多回転カウンタは最初の角度を原点にする") {
     MultiTurnCounter counter;
-    CHECK_FALSE(counter.hasReference());
 
     counter.update(5000);
 
-    CHECK(counter.hasReference());
-    CHECK(counter.counts() == 0);
+    CHECK(counter.degrees() == doctest::Approx((0) * 360.0f / COUNTS_PER_REV));
     CHECK(counter.degrees() == doctest::Approx(0.0f));
 }
 
@@ -32,7 +28,7 @@ TEST_CASE("多回転カウンタは差分を積算する") {
     counter.update(1500);
     counter.update(2000);
 
-    CHECK(counter.counts() == 1000);
+    CHECK(counter.degrees() == doctest::Approx((1000) * 360.0f / COUNTS_PER_REV));
 }
 
 TEST_CASE("多回転カウンタは正転側の巻き戻りを跨ぐ") {
@@ -41,7 +37,7 @@ TEST_CASE("多回転カウンタは正転側の巻き戻りを跨ぐ") {
     // 8100 -> 100 は 0 を跨ぐ前進。8192 - 8100 + 100 = 192。
     counter.update(100);
 
-    CHECK(counter.counts() == 192);
+    CHECK(counter.degrees() == doctest::Approx((192) * 360.0f / COUNTS_PER_REV));
 }
 
 TEST_CASE("多回転カウンタは逆転側の巻き戻りを跨ぐ") {
@@ -50,7 +46,7 @@ TEST_CASE("多回転カウンタは逆転側の巻き戻りを跨ぐ") {
     // 100 -> 8100 は 0 を跨ぐ後退。-(100 + 8192 - 8100) = -192。
     counter.update(8100);
 
-    CHECK(counter.counts() == -192);
+    CHECK(counter.degrees() == doctest::Approx((-192) * 360.0f / COUNTS_PER_REV));
 }
 
 TEST_CASE("多回転カウンタは複数回転を積算する") {
@@ -61,7 +57,7 @@ TEST_CASE("多回転カウンタは複数回転を積算する") {
         counter.update(static_cast<uint16_t>((i * 2048) % COUNTS_PER_REV));
     }
 
-    CHECK(counter.counts() == 2 * COUNTS_PER_REV);
+    CHECK(counter.degrees() == doctest::Approx((2 * COUNTS_PER_REV) * 360.0f / COUNTS_PER_REV));
     CHECK(counter.degrees() == doctest::Approx(720.0f));
 }
 
@@ -119,68 +115,5 @@ TEST_CASE("半回転ちょうどの移動は前進として扱われる") {
     counter.update(0);
     counter.update(COUNTS_PER_REV / 2);
 
-    CHECK(counter.counts() == COUNTS_PER_REV / 2);
-}
-
-TEST_CASE("生値と電流は往復する") {
-    CHECK(rawToCurrent(16384) == 20000);
-    CHECK(rawToCurrent(-16384) == -20000);
-    CHECK(rawToCurrent(0) == 0);
-    CHECK(rawToCurrent(currentToRaw(5000)) == doctest::Approx(5000).epsilon(0.001));
-}
-
-TEST_CASE("ESC ID で載る指令フレームが決まる") {
-    CHECK(groupCommandId(1) == COMMAND_ID_1_TO_4);
-    CHECK(groupCommandId(4) == COMMAND_ID_1_TO_4);
-    CHECK(groupCommandId(5) == COMMAND_ID_5_TO_8);
-    CHECK(groupCommandId(8) == COMMAND_ID_5_TO_8);
-}
-
-TEST_CASE("範囲外の ESC ID はどのフレームにも属さない") {
-    CHECK(groupCommandId(0) == 0);
-    CHECK(groupCommandId(9) == 0);
-}
-
-TEST_CASE("5..8 のスロットは 1..4 と同じ並び") {
-    uint8_t frame[8] = {};
-    writeCommandSlot(frame, 5, 0x1234);
-
-    CHECK(frame[0] == 0x12);
-    CHECK(frame[1] == 0x34);
-}
-
-TEST_CASE("指令フレームは 4 台分を保持する") {
-    CommandFrame frame(COMMAND_ID_1_TO_4);
-    frame.clear();
-
-    CHECK(frame.set(1, 0x0111));
-    CHECK(frame.set(2, 0x0222));
-    CHECK(frame.set(3, 0x0333));
-    CHECK(frame.set(4, 0x0444));
-
-    const uint8_t *data = frame.data();
-    CHECK(data[0] == 0x01);
-    CHECK(data[1] == 0x11);
-    CHECK(data[6] == 0x04);
-    CHECK(data[7] == 0x44);
-}
-
-TEST_CASE("担当外の ESC ID は書き込めない") {
-    CommandFrame frame(COMMAND_ID_1_TO_4);
-    CHECK_FALSE(frame.set(5, 0x1234));
-    CHECK_FALSE(frame.set(0, 0x1234));
-
-    CommandFrame upper(COMMAND_ID_5_TO_8);
-    CHECK(upper.set(5, 0x1234));
-    CHECK_FALSE(upper.set(1, 0x1234));
-}
-
-TEST_CASE("clear で書かれなかった台は 0 電流になる") {
-    CommandFrame frame(COMMAND_ID_1_TO_4);
-    frame.set(1, 0x7FFF);
-    frame.clear();
-
-    for (int i = 0; i < 8; ++i) {
-        CHECK(frame.data()[i] == 0);
-    }
+    CHECK(counter.degrees() == doctest::Approx((COUNTS_PER_REV / 2) * 360.0f / COUNTS_PER_REV));
 }

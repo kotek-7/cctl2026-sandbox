@@ -5,13 +5,12 @@
 // rの速度指令と通常返信。返信の角度から接点原点に使う移動量を求める。
 class El05Motor {
   public:
-    using RunMode = domain::el05::RunMode;
     // rのモータとの通信先を決める。実際の起動設定はmotorsBeginが行う。
     El05Motor(CanBus &bus, uint8_t motor_id, uint8_t host_id)
         : bus_(bus), motor_id_(motor_id), host_id_(host_id) {}
     bool enable();
     bool disable(bool clear_fault = false);
-    bool setRunMode(RunMode mode);
+    bool setVelocityMode();
     bool setSpeed(float radians_per_second);
     bool writeParamFloat(uint16_t param, float value);
     bool onFeedback(uint32_t id, const uint8_t data[8]);
@@ -26,7 +25,6 @@ class El05Motor {
 
   private:
     bool sendFrame(uint8_t type, const uint8_t data[8]);
-    bool writeParamU8(uint16_t param, uint8_t value);
     CanBus &bus_;
     uint8_t motor_id_, host_id_;
     domain::el05::Feedback feedback_{};

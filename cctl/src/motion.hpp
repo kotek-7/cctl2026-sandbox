@@ -29,9 +29,13 @@ inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input
     const float native_per_unit = config::native_per_unit[index];
     const float acceleration = config::speed[index] / config::ramp_seconds;
     const float requested_speed = input * config::speed[index] / 1000.0f;
-    const float max_speed_change = acceleration * dt;
-    float speed =
-        axis.speed + std::clamp(requested_speed - axis.speed, -max_speed_change, max_speed_change);
+    // rの加減速はEL05内部で行う。θ・zだけCCTLで速度変化を制限する。
+    float speed = requested_speed;
+    if (index != 0) {
+        const float max_speed_change = acceleration * dt;
+        speed = axis.speed +
+                std::clamp(requested_speed - axis.speed, -max_speed_change, max_speed_change);
+    }
     // 残り距離dと減速度aから、端点で止まれる速度の上限v = √(2ad)を求める。
     if (axis.referenced) {
         const float position = (measured - axis.offset) / native_per_unit;
@@ -45,4 +49,10 @@ inline void moveAxis(AxisMotion &axis, unsigned index, float measured, int input
     if (contact && speed * config::contact_direction[index] > 0)
         speed = 0;
     axis.speed = speed;
+}
+
+// θ・zの速度誤差から電流[mA]を求める。積分状態は持たず、正負の電流上限だけを適用する。
+inline int32_t motorCurrent(float target_rpm, float measured_rpm) {
+    return static_cast<int32_t>(std::clamp(config::velocity_kp * (target_rpm - measured_rpm),
+                                           -config::max_current_ma, config::max_current_ma));
 }
